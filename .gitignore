@@ -1,0 +1,37 @@
+# Maven
+target/
+
+# Logs
+logs/
+*.log
+
+# Generated output
+CompanyFinancials.csv
+
+# Local runtime data (remove from .gitignore if you want these in the repo)
+OrgNrs.txt
+RealPage.xlsx
+
+# Excel / LibreOffice lock files
+.~lock.*
+~$*
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.jar
+
+# Secrets (prefer PROFF_API_KEY env var)
+.env
+*.local.properties
