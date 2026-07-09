@@ -12,7 +12,7 @@ class CommandLineArgsTest {
     @Test
     void requiresHighlightColorForMerge() {
         assertThrows(IllegalArgumentException.class, () ->
-                CommandLineArgs.parseMergeOptions(new String[]{"--merge-excel"}));
+                CommandLineArgs.parseMergeOptions(new String[]{"--merge-excel"}, "CompanyFetcher.jar"));
     }
 
     @Test
@@ -20,7 +20,7 @@ class CommandLineArgsTest {
         ExcelMergeOptions options = CommandLineArgs.parseMergeOptions(new String[]{
                 "--merge-excel",
                 "--highlight-color=LIGHT_GREEN"
-        });
+        }, "CompanyFetcher.jar");
 
         assertTrue(options.highlightUpdatedCells());
     }
@@ -30,7 +30,7 @@ class CommandLineArgsTest {
         ExcelMergeOptions options = CommandLineArgs.parseMergeOptions(new String[]{
                 "--merge-excel",
                 "--no-highlight"
-        });
+        }, "CompanyFetcher.jar");
 
         assertFalse(options.highlightUpdatedCells());
     }

@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 
     <name>Company Fetcher</name>
-    <description>Retrieves financial information for Norwegian companies based on organization numbers</description>
+    <description>Retrieves financial and aquaculture information for Norwegian companies based on organization numbers</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -57,24 +57,11 @@
     </dependencies>
 
     <build>
-        <finalName>CompanyFetcher</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.4.2</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>no.companyfetcher.Main</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -87,15 +74,35 @@
                 <version>3.6.0</version>
                 <executions>
                     <execution>
+                        <id>company-fetcher</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <shadedArtifactId>company-fetcher</shadedArtifactId>
+                            <finalName>CompanyFetcher</finalName>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>no.companyfetcher.Main</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>aqua-fetcher</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactId>aqua-fetcher</shadedArtifactId>
+                            <finalName>AquaFetcher</finalName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>no.companyfetcher.AquaMain</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

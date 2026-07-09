@@ -7,6 +7,7 @@ logs/
 
 # Generated output
 CompanyFinancials.csv
+AquacultureCapacity.csv
 
 # Local runtime data (remove from .gitignore if you want these in the repo)
 OrgNrs.txt

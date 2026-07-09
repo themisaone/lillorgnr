@@ -1,16 +1,19 @@
-# Company Fetcher
+# Company Fetcher & Aqua Fetcher
 
-A small portable Java utility that retrieves financial information for Norwegian companies based on organization numbers, writes the results to CSV, and optionally merges them into an Excel workbook.
+Two small portable Java utilities that share the same `OrgNrs.txt` input and `config.properties`, but produce separate CSV files and merge into different Excel columns.
 
-Designed to be run a few times per year. The architecture supports swapping the data source from web scraping (Proff.no) to the official Proff API without changing the rest of the application.
+| JAR | Purpose | Default command | Excel merge target |
+|-----|---------|-----------------|-------------------|
+| **CompanyFetcher.jar** | Proff financials (Revenue, Salary, EBIT) | `java -jar CompanyFetcher.jar` | Columns E, G, I |
+| **AquaFetcher.jar** | Akvakulturregisteret Kapasitet sum | `java -jar AquaFetcher.jar` | Column K |
 
-## What it does
+Designed to be run a few times per year.
 
-### Phase 1 — Fetch financial data
+## What they do
 
-Reads a list of organization numbers, fetches company financials for a configured accounting year, and writes a CSV file.
+### CompanyFetcher — Proff financial data
 
-For each company it retrieves:
+Reads organization numbers, fetches company financials for a configured accounting year, and writes `CompanyFinancials.csv`.
 
 | Field | Description |
 |-------|-------------|
@@ -20,39 +23,33 @@ For each company it retrieves:
 
 All amounts are stored in **NOK** (not thousands). Example: Proff shows `248 204` → stored as `248204000`.
 
-Failed companies are written to the CSV with a status like `FAILED: NOT_FOUND`; the batch continues without stopping.
+### AquaFetcher — Aquaculture capacity
 
-### Phase 2 — Merge CSV into Excel
+Reads the same `OrgNrs.txt` and writes `AquacultureCapacity.csv` with the **sum of Kapasitet** per company from [Akvakulturregisteret](https://sikker.fiskeridir.no/akvakulturregisteret/web/legalEntities).
 
-Reads the generated CSV and updates an existing Excel file:
+This mirrors the manual flow on the first tab: search by organisasjonsnummer → open the legal entity → sum Kapasitet on each tillatelse. Data comes from the official [Fiskeridir pub-aqua API](https://api.fiskeridir.no/pub-aqua/api/swagger-ui/index.html).
 
-- Match org.nr from CSV against **column B** in the workbook
-- Write **Revenue** → column **E**
-- Write **SalaryCost** → column **G**
-- Write **EBIT** → column **I**
+Future filtering (e.g. only `Matfisk`, excluding settefisk in STK) can be added once confirmed with the end user.
+
+### Excel merge (both JARs)
+
+Both tools support `--merge-excel` with the same highlight options:
+
+**CompanyFetcher** — match org.nr in column **B**, write:
+- Revenue → **E**
+- SalaryCost → **G**
+- EBIT → **I**
+
+**AquaFetcher** — match org.nr in column **B**, write:
+- TotalCapacity → **K**
 
 Updated cells can be highlighted with a **run-specific color** so you can see which values were refreshed in the latest pass.
-
-## Current state
-
-| Area | Status |
-|------|--------|
-| Maven project, Java 21 | Done |
-| Text input (`OrgNrs.txt`) | Done |
-| CSV output | Done |
-| Proff web provider (`PROFF_WEB`) | Done |
-| Proff API provider stub (`PROFF_API`) | Done (requires API key) |
-| Dummy provider for local testing | Done |
-| Retry, logging, configuration | Done |
-| Excel merge with cell highlighting | Done |
-| Excel input (`OrgNrs.xlsx`) | Not implemented |
-| Windows `.exe` packaging (`jpackage`) | Not implemented |
 
 ## Requirements
 
 - **Java 21** (LTS)
 - **Maven 3.x** (for building)
-- Network access (when using `PROFF_WEB` or `PROFF_API`)
+- Network access
 
 ## Build
 
@@ -60,10 +57,11 @@ Updated cells can be highlighted with a **run-specific color** so you can see wh
 mvn clean package
 ```
 
-This produces a runnable fat JAR:
+Produces two runnable fat JARs:
 
 ```
 target/CompanyFetcher.jar
+target/AquaFetcher.jar
 ```
 
 Run tests:
@@ -78,20 +76,11 @@ Place these files together in a working folder:
 
 ```
 CompanyFetcher.jar
+AquaFetcher.jar
 OrgNrs.txt
 config.properties
-RealPage.xlsx          # only needed for Excel merge
+RealPage.xlsx          # needed for Excel merge
 ```
-
-Example `OrgNrs.txt`:
-
-```
-994613405
-895366722
-975862801
-```
-
-Lines starting with `#` and blank lines are ignored.
 
 ## Configuration
 
@@ -99,158 +88,97 @@ Settings are loaded from `src/main/resources/application.properties` (defaults) 
 
 | Property | Description | Example |
 |----------|-------------|---------|
-| `accounting.year` | Regnskap year to fetch | `2024` |
+| `accounting.year` | Regnskap year (CompanyFetcher) | `2024` |
 | `input.file` | Input org.nr list | `OrgNrs.txt` |
-| `output.file` | CSV output path | `CompanyFinancials.csv` |
+| `output.file` | Proff CSV output | `CompanyFinancials.csv` |
+| `aqua.output.file` | Aquaculture CSV output | `AquacultureCapacity.csv` |
 | `excel.file` | Excel workbook for merge | `RealPage.xlsx` |
-| `provider` | Data source | `PROFF_WEB`, `PROFF_API`, `DUMMY` |
-| `request.delay.ms` | Delay between company lookups | `1500` |
+| `provider` | Proff data source | `PROFF_WEB`, `PROFF_API`, `DUMMY` |
+| `request.delay.ms` | Delay between lookups | `1500` |
 | `retry.count` | Retries on network errors | `3` |
-
-For the Proff API (future):
-
-```bash
-export PROFF_API_KEY=your-token-here
-```
-
-Set `provider=PROFF_API` in `config.properties`.
 
 ## How to run
 
-### Step 1 — Fetch data to CSV
+### CompanyFetcher — fetch Proff data
 
 ```bash
 java -jar target/CompanyFetcher.jar
 ```
 
-Example output:
+Output: `CompanyFinancials.csv`
 
-```
-Reading 3 companies
-██████████ 100%
+### CompanyFetcher — merge into Excel
 
-Completed:
-3 OK
-0 FAILED
-
-Output:
-CompanyFinancials.csv
-```
-
-Logs are written to `logs/company-fetcher.log`.
-
-### Step 2 — Merge CSV into Excel
-
-**Close the Excel file first** (LibreOffice/Excel lock prevents writes).
+**Close the Excel file first.**
 
 ```bash
 java -jar target/CompanyFetcher.jar --merge-excel --highlight-color=LIGHT_YELLOW
 ```
 
-On the next run, use a **different color** so you can see which cells were updated in that pass:
+### AquaFetcher — fetch aquaculture capacity
 
 ```bash
-java -jar target/CompanyFetcher.jar --merge-excel --highlight-color=LIGHT_GREEN
+java -jar target/AquaFetcher.jar
 ```
 
-Cells updated in the latest run get the new color. Cells not updated (e.g. org.nr missing from CSV) keep their previous color — making stale data visible.
+Output: `AquacultureCapacity.csv`
+
+### AquaFetcher — merge into Excel (column K)
+
+```bash
+java -jar target/AquaFetcher.jar --merge-excel --highlight-color=LIGHT_BLUE
+```
+
+Use a **different highlight color on each run** so you can tell which cells were updated in that pass. Cells not updated keep their previous color.
 
 #### Highlight colors
 
-Named colors:
+- `LIGHT_YELLOW`, `LIGHT_GREEN`, `LIGHT_BLUE`, `LIGHT_ORANGE`, `CORAL`
+- Or hex: `--highlight-color=#FFF2CC`
+- `--highlight-color` is **required** unless you use `--no-highlight`
 
-- `LIGHT_YELLOW`
-- `LIGHT_GREEN`
-- `LIGHT_BLUE`
-- `LIGHT_ORANGE`
-- `CORAL`
+## CSV formats
 
-Or hex: `--highlight-color=#FFF2CC`
-
-`--highlight-color` is **required** for `--merge-excel` unless you opt out with `--no-highlight`.
-
-Update values without changing cell colors:
-
-```bash
-java -jar target/CompanyFetcher.jar --merge-excel --no-highlight
-```
-
-## CSV output format
+**CompanyFinancials.csv**
 
 ```csv
 OrgNr,OrgName,AccountingYear,Revenue,SalaryCost,EBIT,Status
 994613405,Arnøy Laks AS,2024,248204000,25194000,15303000,OK
 ```
 
-Status values:
+**AquacultureCapacity.csv**
 
-| Status | Meaning |
-|--------|---------|
-| `OK` | All three financial fields retrieved |
-| `PARTIAL` | Some fields missing (empty in CSV) |
-| `FAILED: …` | Lookup failed (e.g. `NOT_FOUND`, `NETWORK`) |
+```csv
+OrgNr,OrgName,TotalCapacity,Unit,EntryCount,Status
+994613405,ARNØY LAKS AS,4250,TN,4,OK
+975862801,ELVEVOLL SETTEFISK AS,2500000,STK,1,OK
+```
+
+`TotalCapacity` = sum of Kapasitet on each tillatelse (one row per license). `Unit` is typically `TN` or `STK`.
 
 ## Architecture
 
-The application never knows whether data comes from scraping or the API. Everything goes through a single provider interface:
-
 ```
-OrgNrs.txt → CompanyService → CompanyProvider → CompanyData → CsvExporter → CSV
-                                    ↓
-                          ProffWebProvider (today)
-                          ProffApiProvider (future)
+OrgNrs.txt → CompanyFetcher.jar → CompanyFinancials.csv → Excel (E, G, I)
+OrgNrs.txt → AquaFetcher.jar    → AquacultureCapacity.csv → Excel (K)
 ```
 
-Excel merge is a separate step:
-
-```
-CompanyFinancials.csv → ExcelMergeService → RealPage.xlsx
-```
+Both JARs share the same codebase (`no.companyfetcher` package) but have separate entry points (`Main` vs `AquaMain`).
 
 ## Things to be aware of
 
-### Proff web scraping
-
-- `PROFF_WEB` resolves companies via Proff search and the Brønnøysund register (for URL fallback).
-- Proff may block automated requests in some environments. If scraping fails, consider `PROFF_API` once you have a key.
-- A delay between requests (`request.delay.ms`) reduces the risk of rate limiting.
-
-### Excel merge
-
-- Only **individual cells** written by the tool are highlighted — not whole columns.
-- **Close** `RealPage.xlsx` before running `--merge-excel`.
-- Use a **new highlight color on each run** to distinguish fresh updates from stale cells.
-- Rows with an org.nr in column B that are **not** in the CSV are left unchanged (including their cell colors).
-
-### Legal / terms of use
-
-Proff.no restricts systematic automated data collection. This utility is intended for occasional internal use. When available, the official **Proff API** is the preferred long-term data source.
-
-### Amounts
-
-Proff displays amounts in **thousands of NOK**. The utility converts them to full NOK in CSV and Excel.
+- **Close** `RealPage.xlsx` before any `--merge-excel` run.
+- Only **individual cells** written by the tool are highlighted.
+- Proff web scraping may be blocked in some environments; use `PROFF_API` when you have a key.
+- Aquaculture filtering (e.g. Matfisk only) is not implemented yet — pending user confirmation.
 
 ## Development
 
-Main package: `no.companyfetcher`
-
-```
-src/main/java/no/companyfetcher/
-├── Main.java
-├── model/CompanyData.java
-├── input/          TextFileReader, CsvCompanyReader
-├── output/         CsvExporter, ExcelUpdater
-├── provider/       ProffWebProvider, ProffApiProvider, DummyProvider
-├── parser/         ProffParser
-├── service/        CompanyService, ExcelMergeService
-├── config/         Configuration
-└── cli/            CommandLineArgs
-```
-
-Use `provider=DUMMY` in `config.properties` for offline end-to-end testing without network access.
+Use `provider=DUMMY` in `config.properties` for offline CompanyFetcher testing.
 
 ## Planned extensions
 
+- Filter aquaculture by production type (e.g. Matfisk only)
 - Excel input (`OrgNrs.xlsx`)
-- Standalone Windows executable via `jpackage`
-- Full Proff API integration when `PROFF_API_KEY` is available
+- Windows `.exe` packaging via `jpackage`
+- Full Proff API integration

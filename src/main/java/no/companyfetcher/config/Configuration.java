@@ -75,6 +75,14 @@ public class Configuration {
         return require("excel.file");
     }
 
+    public String getAquaOutputFile() {
+        return require("aqua.output.file");
+    }
+
+    public String getFiskeridirApiBaseUrl() {
+        return properties.getProperty("fiskeridir.api.base.url", "https://api.fiskeridir.no/pub-aqua").trim();
+    }
+
     private String require(String key) {
         String value = properties.getProperty(key);
         if (value == null || value.isBlank()) {
