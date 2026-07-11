@@ -1,6 +1,7 @@
 package no.companyfetcher.output;
 
 import no.companyfetcher.model.AquacultureCapacityData;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -41,6 +42,32 @@ class AquaExcelUpdaterTest {
 
             Row row7 = workbook.getSheetAt(0).getRow(6);
             assertEquals(1000.0, row7.getCell(10).getNumericCellValue());
+        }
+    }
+
+    @Test
+    void clearsCellAndHighlightsWhenCapacityIsEmpty() throws Exception {
+        Path workbookPath = tempDir.resolve("companies.xlsx");
+        try (var workbook = new XSSFWorkbook()) {
+            var sheet = workbook.createSheet("Sheet1");
+            var row = sheet.createRow(5);
+            row.createCell(1).setCellValue("994613405");
+            row.createCell(10).setCellValue(999);
+            try (var out = Files.newOutputStream(workbookPath)) {
+                workbook.write(out);
+            }
+        }
+
+        Map<String, AquacultureCapacityData> rows = Map.of(
+                "994613405", new AquacultureCapacityData("994613405", "ELVEVOLL SETTEFISK AS", null, null, 0, "OK: NO_MATCHING_MTB")
+        );
+
+        new AquaExcelUpdater(workbookPath, ExcelMergeOptions.withDefaultHighlight()).update(rows);
+
+        try (var workbook = new XSSFWorkbook(workbookPath.toFile())) {
+            var cell = workbook.getSheetAt(0).getRow(5).getCell(10);
+            assertEquals(CellType.BLANK, cell.getCellType());
+            assertEquals(FillPatternType.SOLID_FOREGROUND, cell.getCellStyle().getFillPattern());
         }
     }
 

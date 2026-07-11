@@ -7,13 +7,16 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.Set;
 
 public class Configuration {
 
     private final Properties properties;
+    private final Properties accountingInfo;
 
-    public Configuration(Properties properties) {
+    public Configuration(Properties properties, Properties accountingInfo) {
         this.properties = properties;
+        this.accountingInfo = accountingInfo;
     }
 
     public static Configuration load() {
@@ -36,11 +39,38 @@ public class Configuration {
             }
         }
 
-        return new Configuration(properties);
+        Properties accountingInfo = loadAccountingInfo(properties);
+        return new Configuration(properties, accountingInfo);
+    }
+
+    private static Properties loadAccountingInfo(Properties mainProperties) {
+        String accountingInfoFile = mainProperties.getProperty("accounting.info.file", "config.accountinginfo").trim();
+        Path path = Path.of(accountingInfoFile);
+
+        if (!Files.exists(path)) {
+            throw new IllegalStateException("Missing accounting info file: " + path.toAbsolutePath());
+        }
+
+        Properties accountingInfo = new Properties();
+        try (InputStream input = Files.newInputStream(path)) {
+            accountingInfo.load(input);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to load accounting info file: " + path, e);
+        }
+
+        return accountingInfo;
     }
 
     public int getAccountingYear() {
-        return Integer.parseInt(require("accounting.year"));
+        return Integer.parseInt(requireAccounting("accounting.year"));
+    }
+
+    public Set<String> getMtbProdStadiumAllowed() {
+        return MtbLicenseFilter.parseAllowedList(requireAccounting("mtb.prod.stadium.allowed"));
+    }
+
+    public Set<String> getMtbFormalAllowed() {
+        return MtbLicenseFilter.parseAllowedList(requireAccounting("mtb.formal.allowed"));
     }
 
     public String getOutputFile() {
@@ -87,6 +117,14 @@ public class Configuration {
         String value = properties.getProperty(key);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("Missing required configuration property: " + key);
+        }
+        return value.trim();
+    }
+
+    private String requireAccounting(String key) {
+        String value = accountingInfo.getProperty(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Missing required accounting info property: " + key);
         }
         return value.trim();
     }

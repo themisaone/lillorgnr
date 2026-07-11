@@ -1,6 +1,7 @@
 package no.companyfetcher.parser;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import no.companyfetcher.config.MtbLicenseFilter;
 import no.companyfetcher.model.AquacultureCapacityData;
 import no.companyfetcher.provider.ProviderException;
 
@@ -8,6 +9,12 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class FiskeridirParser {
+
+    private final MtbLicenseFilter filter;
+
+    public FiskeridirParser(MtbLicenseFilter filter) {
+        this.filter = filter;
+    }
 
     public AquacultureCapacityData parse(String orgNumber, JsonNode entity, JsonNode licenses) {
         if (entity == null || !entity.isArray() || entity.isEmpty()) {
@@ -24,6 +31,10 @@ public class FiskeridirParser {
 
         if (licenses != null && licenses.isArray()) {
             for (JsonNode license : licenses) {
+                if (!filter.allows(license)) {
+                    continue;
+                }
+
                 JsonNode capacity = license.path("capacity");
                 if (capacity.isMissingNode() || capacity.isNull()) {
                     continue;
@@ -44,13 +55,24 @@ public class FiskeridirParser {
             }
         }
 
-        String unit = units.size() == 1 ? units.iterator().next() : units.isEmpty() ? null : "MIXED";
-        String status = entryCount == 0 ? "OK: NO_ENTRIES" : units.size() <= 1 ? "OK" : "PARTIAL: MIXED_UNITS";
+        if (entryCount == 0) {
+            return new AquacultureCapacityData(
+                    orgNumber,
+                    companyName,
+                    null,
+                    null,
+                    0,
+                    "OK: NO_MATCHING_MTB"
+            );
+        }
+
+        String unit = units.size() == 1 ? units.iterator().next() : "MIXED";
+        String status = units.size() <= 1 ? "OK" : "PARTIAL: MIXED_UNITS";
 
         return new AquacultureCapacityData(
                 orgNumber,
                 companyName,
-                entryCount == 0 ? 0.0 : total,
+                total,
                 unit,
                 entryCount,
                 status

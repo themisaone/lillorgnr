@@ -1,6 +1,6 @@
 # Company Fetcher & Aqua Fetcher
 
-Two small portable Java utilities that share the same `OrgNrs.txt` input and `config.properties`, but produce separate CSV files and merge into different Excel columns.
+Two small portable Java utilities that share the same `OrgNrs.txt` input, `config.properties`, and `config.accountinginfo`, but produce separate CSV files and merge into different Excel columns.
 
 | JAR | Purpose | Default command | Excel merge target |
 |-----|---------|-----------------|-------------------|
@@ -27,9 +27,7 @@ All amounts are stored in **NOK** (not thousands). Example: Proff shows `248 204
 
 Reads the same `OrgNrs.txt` and writes `AquacultureCapacity.csv` with the **sum of Kapasitet** per company from [Akvakulturregisteret](https://sikker.fiskeridir.no/akvakulturregisteret/web/legalEntities).
 
-This mirrors the manual flow on the first tab: search by organisasjonsnummer → open the legal entity → sum Kapasitet on each tillatelse. Data comes from the official [Fiskeridir pub-aqua API](https://api.fiskeridir.no/pub-aqua/api/swagger-ui/index.html).
-
-Future filtering (e.g. only `Matfisk`, excluding settefisk in STK) can be added once confirmed with the end user.
+This mirrors the manual flow on the first tab: search by organisasjonsnummer → open the legal entity → sum Kapasitet on matching tillatelser. Filters are configured in `config.accountinginfo` (default: Prod.stadium `matfisk` and Formal `kommersiell`). Non-matching licenses are skipped and leave an empty capacity in CSV/Excel.
 
 ### Excel merge (both JARs)
 
@@ -79,23 +77,34 @@ CompanyFetcher.jar
 AquaFetcher.jar
 OrgNrs.txt
 config.properties
+config.accountinginfo
 RealPage.xlsx          # needed for Excel merge
 ```
 
 ## Configuration
 
-Settings are loaded from `src/main/resources/application.properties` (defaults) and overridden by **`config.properties`** in the working directory.
+Settings are loaded from `src/main/resources/application.properties` (defaults), overridden by **`config.properties`** in the working directory, plus **`config.accountinginfo`** (path set by `accounting.info.file`).
+
+### config.properties
 
 | Property | Description | Example |
 |----------|-------------|---------|
-| `accounting.year` | Regnskap year (CompanyFetcher) | `2024` |
 | `input.file` | Input org.nr list | `OrgNrs.txt` |
 | `output.file` | Proff CSV output | `CompanyFinancials.csv` |
 | `aqua.output.file` | Aquaculture CSV output | `AquacultureCapacity.csv` |
 | `excel.file` | Excel workbook for merge | `RealPage.xlsx` |
+| `accounting.info.file` | Accounting/MTB filter file | `config.accountinginfo` |
 | `provider` | Proff data source | `PROFF_WEB`, `PROFF_API`, `DUMMY` |
 | `request.delay.ms` | Delay between lookups | `1500` |
 | `retry.count` | Retries on network errors | `3` |
+
+### config.accountinginfo
+
+| Property | Description | Example |
+|----------|-------------|---------|
+| `accounting.year` | Regnskap year (CompanyFetcher) | `2024` |
+| `mtb.prod.stadium.allowed` | Allowed Prod.stadium values (comma-separated) | `matfisk` |
+| `mtb.formal.allowed` | Allowed Formal values (comma-separated) | `kommersiell` |
 
 ## How to run
 
@@ -151,10 +160,10 @@ OrgNr,OrgName,AccountingYear,Revenue,SalaryCost,EBIT,Status
 ```csv
 OrgNr,OrgName,TotalCapacity,Unit,EntryCount,Status
 994613405,ARNØY LAKS AS,4250,TN,4,OK
-975862801,ELVEVOLL SETTEFISK AS,2500000,STK,1,OK
+975862801,ELVEVOLL SETTEFISK AS,,,0,OK: NO_MATCHING_MTB
 ```
 
-`TotalCapacity` = sum of Kapasitet on each tillatelse (one row per license). `Unit` is typically `TN` or `STK`.
+Only tillatelser matching **both** `mtb.prod.stadium.allowed` and `mtb.formal.allowed` are summed. Others are skipped; `TotalCapacity` and `Unit` are left empty. On Excel merge, empty rows still get the highlight color (if requested) with the cell cleared.
 
 ## Architecture
 
@@ -170,7 +179,7 @@ Both JARs share the same codebase (`no.companyfetcher` package) but have separat
 - **Close** `RealPage.xlsx` before any `--merge-excel` run.
 - Only **individual cells** written by the tool are highlighted.
 - Proff web scraping may be blocked in some environments; use `PROFF_API` when you have a key.
-- Aquaculture filtering (e.g. Matfisk only) is not implemented yet — pending user confirmation.
+- AquaFetcher MTB filters are configured in `config.accountinginfo` (`mtb.prod.stadium.allowed`, `mtb.formal.allowed`).
 
 ## Development
 
@@ -178,7 +187,6 @@ Use `provider=DUMMY` in `config.properties` for offline CompanyFetcher testing.
 
 ## Planned extensions
 
-- Filter aquaculture by production type (e.g. Matfisk only)
 - Excel input (`OrgNrs.xlsx`)
 - Windows `.exe` packaging via `jpackage`
 - Full Proff API integration

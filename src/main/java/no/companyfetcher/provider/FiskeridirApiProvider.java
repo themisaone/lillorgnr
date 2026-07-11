@@ -3,6 +3,7 @@ package no.companyfetcher.provider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import no.companyfetcher.config.Configuration;
+import no.companyfetcher.config.MtbLicenseFilter;
 import no.companyfetcher.model.AquacultureCapacityData;
 import no.companyfetcher.parser.FiskeridirParser;
 import org.slf4j.Logger;
@@ -25,12 +26,16 @@ public class FiskeridirApiProvider implements AquacultureProvider {
     private final String apiBaseUrl;
 
     public FiskeridirApiProvider(Configuration configuration) {
-        this(configuration.getFiskeridirApiBaseUrl());
+        this(configuration.getFiskeridirApiBaseUrl(), MtbLicenseFilter.fromConfiguration(configuration));
     }
 
     FiskeridirApiProvider(String apiBaseUrl) {
+        this(apiBaseUrl, MtbLicenseFilter.matfiskKommersiell());
+    }
+
+    FiskeridirApiProvider(String apiBaseUrl, MtbLicenseFilter filter) {
         this.apiBaseUrl = trimTrailingSlash(apiBaseUrl);
-        this.parser = new FiskeridirParser();
+        this.parser = new FiskeridirParser(filter);
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(20))
                 .followRedirects(HttpClient.Redirect.NORMAL)

@@ -1,0 +1,9 @@
+accounting.year=2024
+
+mtb.prod.stadium.allowed=matfisk
+mtb.formal.allowed=kommersiell
+
+mtb.stages.file=config.mtbstages
+
+medl.kontigent=14200
+serv.avgift=12200
