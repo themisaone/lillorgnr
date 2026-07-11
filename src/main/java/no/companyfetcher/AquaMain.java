@@ -37,7 +37,7 @@ public class AquaMain {
     }
 
     private static void runFetch(Configuration configuration) {
-        CompanyInputReader inputReader = new TextFileReader(Path.of(configuration.getInputFile()));
+        CompanyInputReader inputReader = new TextFileReader(Path.of(configuration.getProffAquaInputFile()));
         AquacultureService aquacultureService = new AquacultureService(new FiskeridirApiProvider(configuration), configuration);
         AquacultureCsvExporter exporter = new AquacultureCsvExporter(Path.of(configuration.getAquaOutputFile()));
 

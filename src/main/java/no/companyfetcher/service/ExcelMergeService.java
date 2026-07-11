@@ -16,7 +16,7 @@ public class ExcelMergeService {
     private static final Logger log = LoggerFactory.getLogger(ExcelMergeService.class);
 
     public ExcelUpdater.MergeResult merge(Configuration configuration, ExcelMergeOptions options) {
-        Path csvFile = Path.of(configuration.getOutputFile());
+        Path csvFile = Path.of(configuration.getProffOutputFile());
         Path excelFile = Path.of(configuration.getExcelFile());
 
         Map<String, CompanyData> companies = new CsvCompanyReader(csvFile).readByOrgNumber();

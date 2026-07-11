@@ -1,11 +1,13 @@
-# Company Fetcher & Aqua Fetcher
+# Company Fetcher, Aqua Fetcher, MTB Calc & GUI
 
-Two small portable Java utilities that share the same `OrgNrs.txt` input, `config.properties`, and `config.accountinginfo`, but produce separate CSV files and merge into different Excel columns.
+Three command-line tools plus a **simple GUI** for non-technical users (Windows-friendly).
 
-| JAR | Purpose | Default command | Excel merge target |
-|-----|---------|-----------------|-------------------|
-| **CompanyFetcher.jar** | Proff financials (Revenue, Salary, EBIT) | `java -jar CompanyFetcher.jar` | Columns E, G, I |
-| **AquaFetcher.jar** | Akvakulturregisteret Kapasitet sum | `java -jar AquaFetcher.jar` | Column K |
+| JAR | Purpose | Default command |
+|-----|---------|-----------------|
+| **CompanyFetcher.jar** | Proff financials | `java -jar CompanyFetcher.jar` |
+| **AquaFetcher.jar** | Akvakulturregisteret Kapasitet | `java -jar AquaFetcher.jar` |
+| **MtbCalc.jar** | MTB fee calculation | `java -jar MtbCalc.jar` |
+| **OrgNrGui.jar** | Simple buttons for all of the above | `java -jar OrgNrGui.jar` or double-click `StartGui.bat` (Windows) |
 
 Designed to be run a few times per year.
 
@@ -27,9 +29,13 @@ All amounts are stored in **NOK** (not thousands). Example: Proff shows `248 204
 
 Reads the same `OrgNrs.txt` and writes `AquacultureCapacity.csv` with the **sum of Kapasitet** per company from [Akvakulturregisteret](https://sikker.fiskeridir.no/akvakulturregisteret/web/legalEntities).
 
-This mirrors the manual flow on the first tab: search by organisasjonsnummer → open the legal entity → sum Kapasitet on matching tillatelser. Filters are configured in `config.accountinginfo` (default: Prod.stadium `matfisk` and Formal `kommersiell`). Non-matching licenses are skipped and leave an empty capacity in CSV/Excel.
+This mirrors the manual flow on the first tab: search by organisasjonsnummer → open the legal entity → sum Kapasitet on matching tillatelser. Filters are configured in `config.accountinginfo` (default: Prod.stadium `matfisk` and Formal `kommersiell`). Output: `AquacultureCapacity.csv` (unchanged format — no fee fields).
 
-### Excel merge (both JARs)
+### MtbCalc — MTB fee calculation
+
+Reads `MtbInput.txt` (konsern name + MTB number per line) and writes `MtbCalc.csv` with tiered **Fee** plus **MedlCont** and **ServAvgift** (half of values from `config.accountinginfo`).
+
+### Excel merge (CompanyFetcher & AquaFetcher)
 
 Both tools support `--merge-excel` with the same highlight options:
 
@@ -55,11 +61,13 @@ Updated cells can be highlighted with a **run-specific color** so you can see wh
 mvn clean package
 ```
 
-Produces two runnable fat JARs:
+Produces four runnable fat JARs:
 
 ```
 target/CompanyFetcher.jar
 target/AquaFetcher.jar
+target/MtbCalc.jar
+target/OrgNrGui.jar
 ```
 
 Run tests:
@@ -75,23 +83,30 @@ Place these files together in a working folder:
 ```
 CompanyFetcher.jar
 AquaFetcher.jar
+MtbCalc.jar
+OrgNrGui.jar
+StartGui.bat           # Windows: double-click to open GUI
 OrgNrs.txt
+MtbInput.txt
 config.properties
 config.accountinginfo
+config.mtbstages
 RealPage.xlsx          # needed for Excel merge
 ```
 
 ## Configuration
 
-Settings are loaded from `src/main/resources/application.properties` (defaults), overridden by **`config.properties`** in the working directory, plus **`config.accountinginfo`** (path set by `accounting.info.file`).
+Settings are loaded from **`config.properties`** in the working directory, plus **`config.accountinginfo`** (path set by `accounting.info.file`).
 
 ### config.properties
 
 | Property | Description | Example |
 |----------|-------------|---------|
-| `input.file` | Input org.nr list | `OrgNrs.txt` |
-| `output.file` | Proff CSV output | `CompanyFinancials.csv` |
+| `proffaqua.input.file` | Shared org.nr input (Proff + Aqua) | `OrgNrs.txt` |
+| `mtb.input.file` | MTB calc input (name,mtb per line) | `MtbInput.txt` |
+| `proff.output.file` | Proff CSV output | `CompanyFinancials.csv` |
 | `aqua.output.file` | Aquaculture CSV output | `AquacultureCapacity.csv` |
+| `mtb.output.file` | MTB calc CSV output | `MtbCalc.csv` |
 | `excel.file` | Excel workbook for merge | `RealPage.xlsx` |
 | `accounting.info.file` | Accounting/MTB filter file | `config.accountinginfo` |
 | `provider` | Proff data source | `PROFF_WEB`, `PROFF_API`, `DUMMY` |
@@ -105,8 +120,29 @@ Settings are loaded from `src/main/resources/application.properties` (defaults),
 | `accounting.year` | Regnskap year (CompanyFetcher) | `2024` |
 | `mtb.prod.stadium.allowed` | Allowed Prod.stadium values (comma-separated) | `matfisk` |
 | `mtb.formal.allowed` | Allowed Formal values (comma-separated) | `kommersiell` |
+| `mtb.stages.file` | Tiered fee staircase CSV | `config.mtbstages` |
+| `medl.kontigent` | Full membership fee (CSV gets half as `MedlCont`) | `14200` |
+| `serv.avgift` | Full service fee (CSV gets half as `ServAvgift`) | `12200` |
 
-## How to run
+## GUI for Windows (non-technical users)
+
+Copy the working folder to Windows (must include `config.properties`, `config.accountinginfo`, `config.mtbstages`, input files, and `OrgNrGui.jar`).
+
+**Option 1:** Double-click `StartGui.bat`  
+**Option 2:** `java -jar OrgNrGui.jar` (requires Java 21 installed)
+
+The GUI provides:
+
+- **View input file** / **View result CSV** buttons for each section (opens in Excel/Notepad on Windows)
+- **Proff:** Fetch button + Merge to Excel with color dropdown
+- **Aqua:** Fetch button + Merge to Excel (column K) with color dropdown
+- **MTB:** Calculate fees button
+
+Highlight colors: `LIGHT_GREEN`, `LIGHT_YELLOW`, `LIGHT_BLUE`, `LIGHT_ORANGE`
+
+Close Excel before clicking any merge button (the GUI will remind you).
+
+## How to run (command line)
 
 ### CompanyFetcher — fetch Proff data
 
@@ -138,7 +174,22 @@ Output: `AquacultureCapacity.csv`
 java -jar target/AquaFetcher.jar --merge-excel --highlight-color=LIGHT_BLUE
 ```
 
-Use a **different highlight color on each run** so you can tell which cells were updated in that pass. Cells not updated keep their previous color.
+### MtbCalc — calculate fees
+
+```bash
+java -jar target/MtbCalc.jar
+```
+
+Input `MtbInput.txt` (one konsern per line):
+
+```
+ARNØY LAKS,4250
+ELVEVOLL SETTEFISK,
+```
+
+Output: `MtbCalc.csv`
+
+Use a **different highlight color on each Excel merge run** so you can tell which cells were updated in that pass. Cells not updated keep their previous color.
 
 #### Highlight colors
 
@@ -163,16 +214,25 @@ OrgNr,OrgName,TotalCapacity,Unit,EntryCount,Status
 975862801,ELVEVOLL SETTEFISK AS,,,0,OK: NO_MATCHING_MTB
 ```
 
-Only tillatelser matching **both** `mtb.prod.stadium.allowed` and `mtb.formal.allowed` are summed. Others are skipped; `TotalCapacity` and `Unit` are left empty. On Excel merge, empty rows still get the highlight color (if requested) with the cell cleared.
+**MtbCalc.csv**
+
+```csv
+Name,MTB,Fee,MedlCont,ServAvgift
+ARNØY LAKS,4250,72520,7100,6100
+ELVEVOLL SETTEFISK,,,7100,6100
+```
+
+`Fee` uses the tiered prices in `config.mtbstages`. `MedlCont` and `ServAvgift` are half of `medl.kontigent` and `serv.avgift`.
 
 ## Architecture
 
 ```
-OrgNrs.txt → CompanyFetcher.jar → CompanyFinancials.csv → Excel (E, G, I)
-OrgNrs.txt → AquaFetcher.jar    → AquacultureCapacity.csv → Excel (K)
+OrgNrs.txt   → CompanyFetcher.jar → CompanyFinancials.csv → Excel (E, G, I)
+OrgNrs.txt   → AquaFetcher.jar    → AquacultureCapacity.csv → Excel (K)
+MtbInput.txt → MtbCalc.jar        → MtbCalc.csv
 ```
 
-Both JARs share the same codebase (`no.companyfetcher` package) but have separate entry points (`Main` vs `AquaMain`).
+All three JARs share the same codebase (`no.companyfetcher` package) with separate entry points.
 
 ## Things to be aware of
 

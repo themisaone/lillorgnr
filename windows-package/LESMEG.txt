@@ -1,0 +1,25 @@
+Org.nr verktoy - Windows
+========================
+
+Forutsetning:
+  Java 21 må være installert (https://adoptium.net/)
+
+Start:
+  Dobbeltklikk StartGui.bat
+
+Filer du redigerer:
+  OrgNrs.txt      - org.nr for Proff og Akvakultur (Rediger inndatafil i GUI)
+  MtbInput.txt    - navn,MTB for gebyrberegning
+
+Excel:
+  Legg din egen Excel-fil i denne mappen.
+  Sett filnavnet i config.properties under excel.file=
+  Org.nr må stå i kolonne B.
+
+Viktig:
+  Lukk Excel-filen før du slår sammen data fra GUI.
+
+Output (opprettes automatisk):
+  CompanyFinancials.csv
+  AquacultureCapacity.csv
+  MtbCalc.csv

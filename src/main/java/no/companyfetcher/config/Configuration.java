@@ -20,23 +20,18 @@ public class Configuration {
     }
 
     public static Configuration load() {
-        Properties properties = new Properties();
-
-        try (InputStream defaults = Configuration.class.getClassLoader().getResourceAsStream("application.properties")) {
-            if (defaults != null) {
-                properties.load(defaults);
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to load default configuration", e);
+        Path localConfig = Path.of("config.properties");
+        if (!Files.exists(localConfig)) {
+            throw new IllegalStateException(
+                    "Missing config.properties in working directory: " + Path.of("").toAbsolutePath()
+            );
         }
 
-        Path localConfig = Path.of("config.properties");
-        if (Files.exists(localConfig)) {
-            try (InputStream local = Files.newInputStream(localConfig)) {
-                properties.load(local);
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to load config.properties", e);
-            }
+        Properties properties = new Properties();
+        try (InputStream local = Files.newInputStream(localConfig)) {
+            properties.load(local);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to load config.properties", e);
         }
 
         Properties accountingInfo = loadAccountingInfo(properties);
@@ -73,12 +68,24 @@ public class Configuration {
         return MtbLicenseFilter.parseAllowedList(requireAccounting("mtb.formal.allowed"));
     }
 
-    public String getOutputFile() {
-        return require("output.file");
+    public String getMtbStagesFile() {
+        return requireAccounting("mtb.stages.file");
     }
 
-    public String getInputFile() {
-        return require("input.file");
+    public long getMedlKontigent() {
+        return Long.parseLong(requireAccounting("medl.kontigent"));
+    }
+
+    public long getServAvgift() {
+        return Long.parseLong(requireAccounting("serv.avgift"));
+    }
+
+    public String getProffOutputFile() {
+        return require("proff.output.file");
+    }
+
+    public String getProffAquaInputFile() {
+        return require("proffaqua.input.file");
     }
 
     public long getRequestDelayMs() {
@@ -107,6 +114,14 @@ public class Configuration {
 
     public String getAquaOutputFile() {
         return require("aqua.output.file");
+    }
+
+    public String getMtbInputFile() {
+        return require("mtb.input.file");
+    }
+
+    public String getMtbOutputFile() {
+        return require("mtb.output.file");
     }
 
     public String getFiskeridirApiBaseUrl() {

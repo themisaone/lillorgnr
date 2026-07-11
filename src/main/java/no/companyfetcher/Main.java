@@ -42,10 +42,10 @@ public class Main {
     }
 
     private static void runFetch(Configuration configuration) {
-        CompanyInputReader inputReader = new TextFileReader(Path.of(configuration.getInputFile()));
+        CompanyInputReader inputReader = new TextFileReader(Path.of(configuration.getProffAquaInputFile()));
         CompanyProvider provider = createProvider(configuration);
         CompanyService companyService = new CompanyService(provider, configuration);
-        CompanyExporter exporter = new CsvExporter(Path.of(configuration.getOutputFile()));
+        CompanyExporter exporter = new CsvExporter(Path.of(configuration.getProffOutputFile()));
 
         List<String> orgNumbers = inputReader.read();
         System.out.println("Reading " + orgNumbers.size() + " companies");
@@ -63,7 +63,7 @@ public class Main {
         System.out.println(failedCount + " FAILED");
         System.out.println();
         System.out.println("Output:");
-        System.out.println(configuration.getOutputFile());
+        System.out.println(configuration.getProffOutputFile());
 
         log.info("FINISHED");
     }
@@ -84,7 +84,7 @@ public class Main {
         }
         System.out.println();
         System.out.println("CSV source:");
-        System.out.println(configuration.getOutputFile());
+        System.out.println(configuration.getProffOutputFile());
         System.out.println("Excel target:");
         System.out.println(configuration.getExcelFile());
 

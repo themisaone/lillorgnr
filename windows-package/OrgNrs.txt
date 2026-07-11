@@ -1,0 +1,3 @@
+# Én org.nr per linje (tomme linjer og linjer som starter med # ignoreres)
+# Eksempel:
+# 994613405

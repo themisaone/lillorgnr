@@ -1,0 +1,3 @@
+# Navn,MTB (tomme linjer og linjer som starter med # ignoreres)
+# Eksempel:
+# ARNØY LAKS,4250
