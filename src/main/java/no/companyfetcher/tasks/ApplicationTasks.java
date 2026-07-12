@@ -59,7 +59,10 @@ public final class ApplicationTasks {
     }
 
     public static String mergeProffToExcel(Configuration configuration, String highlightColorName) {
-        ExcelMergeOptions mergeOptions = ExcelMergeOptions.withHighlight(HighlightColor.parse(highlightColorName));
+        return mergeProffToExcel(configuration, ExcelMergeOptions.withHighlight(HighlightColor.parse(highlightColorName)));
+    }
+
+    public static String mergeProffToExcel(Configuration configuration, ExcelMergeOptions mergeOptions) {
         ExcelUpdater.MergeResult result = new ExcelMergeService().merge(configuration, mergeOptions);
 
         return """
@@ -74,7 +77,7 @@ public final class ApplicationTasks {
                 """.formatted(
                 result.updatedRows(),
                 result.skippedRows(),
-                highlightColorName,
+                describeHighlight(mergeOptions),
                 configuration.getProffOutputFile(),
                 configuration.getExcelFile()
         );
@@ -101,7 +104,10 @@ public final class ApplicationTasks {
     }
 
     public static String mergeAquaToExcel(Configuration configuration, String highlightColorName) {
-        ExcelMergeOptions mergeOptions = ExcelMergeOptions.withHighlight(HighlightColor.parse(highlightColorName));
+        return mergeAquaToExcel(configuration, ExcelMergeOptions.withHighlight(HighlightColor.parse(highlightColorName)));
+    }
+
+    public static String mergeAquaToExcel(Configuration configuration, ExcelMergeOptions mergeOptions) {
         AquaExcelUpdater.MergeResult result = new AquaExcelMergeService().merge(configuration, mergeOptions);
 
         return """
@@ -116,7 +122,7 @@ public final class ApplicationTasks {
                 """.formatted(
                 result.updatedRows(),
                 result.skippedRows(),
-                highlightColorName,
+                describeHighlight(mergeOptions),
                 configuration.getAquaOutputFile(),
                 configuration.getExcelFile()
         );
@@ -146,5 +152,12 @@ public final class ApplicationTasks {
             case PROFF_API -> new ProffApiProvider(configuration);
             case DUMMY -> new DummyProvider(configuration.getAccountingYear());
         };
+    }
+
+    private static String describeHighlight(ExcelMergeOptions mergeOptions) {
+        if (!mergeOptions.highlightUpdatedCells()) {
+            return "disabled";
+        }
+        return String.valueOf(mergeOptions.highlightColor());
     }
 }

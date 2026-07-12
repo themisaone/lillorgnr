@@ -11,9 +11,6 @@ echo "Creating $DEPLOY_DIR ..."
 rm -rf "$DEPLOY_DIR"
 mkdir -p "$DEPLOY_DIR"
 
-cp "$ROOT/target/CompanyFetcher.jar" "$DEPLOY_DIR/"
-cp "$ROOT/target/AquaFetcher.jar" "$DEPLOY_DIR/"
-cp "$ROOT/target/MtbCalc.jar" "$DEPLOY_DIR/"
 cp "$ROOT/target/OrgNrGui.jar" "$DEPLOY_DIR/"
 
 cp "$ROOT/config.properties" "$DEPLOY_DIR/"

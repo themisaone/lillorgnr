@@ -1,13 +1,15 @@
 # Company Fetcher, Aqua Fetcher, MTB Calc & GUI
 
-Three command-line tools plus a **simple GUI** for non-technical users (Windows-friendly).
+One fat JAR for everything: **GUI** (no arguments) or **command line** via `--command=PROF|AQUA|MTBCALC`.
 
-| JAR | Purpose | Default command |
-|-----|---------|-----------------|
-| **CompanyFetcher.jar** | Proff financials | `java -jar CompanyFetcher.jar` |
-| **AquaFetcher.jar** | Akvakulturregisteret Kapasitet | `java -jar AquaFetcher.jar` |
-| **MtbCalc.jar** | MTB fee calculation | `java -jar MtbCalc.jar` |
-| **OrgNrGui.jar** | Simple buttons for all of the above | `java -jar OrgNrGui.jar` or double-click `StartGui.bat` (Windows) |
+| Mode | Command |
+|------|---------|
+| **GUI** (Windows-friendly) | `java -jar OrgNrGui.jar` or double-click `StartGui.bat` |
+| **Proff fetch** | `java -jar OrgNrGui.jar --command=PROF` |
+| **Proff Excel merge** | `java -jar OrgNrGui.jar --command=PROF --merge-excel --highlight-color=LIGHT_YELLOW` |
+| **Aqua fetch** | `java -jar OrgNrGui.jar --command=AQUA` |
+| **Aqua Excel merge** | `java -jar OrgNrGui.jar --command=AQUA --merge-excel --highlight-color=LIGHT_BLUE` |
+| **MTB calc** | `java -jar OrgNrGui.jar --command=MTBCALC` |
 
 Designed to be run a few times per year.
 
@@ -35,16 +37,16 @@ This mirrors the manual flow on the first tab: search by organisasjonsnummer →
 
 Reads `MtbInput.txt` (konsern name + MTB number per line) and writes `MtbCalc.csv` with tiered **Fee** plus **MedlCont** and **ServAvgift** (half of values from `config.accountinginfo`).
 
-### Excel merge (CompanyFetcher & AquaFetcher)
+### Excel merge (PROF & AQUA commands)
 
-Both tools support `--merge-excel` with the same highlight options:
+Both commands support `--merge-excel` with the same highlight options:
 
-**CompanyFetcher** — match org.nr in column **B**, write:
+**PROF** — match org.nr in column **B**, write:
 - Revenue → **E**
 - SalaryCost → **G**
 - EBIT → **I**
 
-**AquaFetcher** — match org.nr in column **B**, write:
+**AQUA** — match org.nr in column **B**, write:
 - TotalCapacity → **K**
 
 Updated cells can be highlighted with a **run-specific color** so you can see which values were refreshed in the latest pass.
@@ -61,12 +63,9 @@ Updated cells can be highlighted with a **run-specific color** so you can see wh
 mvn clean package
 ```
 
-Produces four runnable fat JARs:
+Produces one runnable fat JAR:
 
 ```
-target/CompanyFetcher.jar
-target/AquaFetcher.jar
-target/MtbCalc.jar
 target/OrgNrGui.jar
 ```
 
@@ -81,9 +80,6 @@ mvn test
 Place these files together in a working folder:
 
 ```
-CompanyFetcher.jar
-AquaFetcher.jar
-MtbCalc.jar
 OrgNrGui.jar
 StartGui.bat           # Windows: double-click to open GUI
 OrgNrs.txt
@@ -144,40 +140,40 @@ Close Excel before clicking any merge button (the GUI will remind you).
 
 ## How to run (command line)
 
-### CompanyFetcher — fetch Proff data
+### Proff — fetch data
 
 ```bash
-java -jar target/CompanyFetcher.jar
+java -jar target/OrgNrGui.jar --command=PROF
 ```
 
 Output: `CompanyFinancials.csv`
 
-### CompanyFetcher — merge into Excel
+### Proff — merge into Excel
 
 **Close the Excel file first.**
 
 ```bash
-java -jar target/CompanyFetcher.jar --merge-excel --highlight-color=LIGHT_YELLOW
+java -jar target/OrgNrGui.jar --command=PROF --merge-excel --highlight-color=LIGHT_YELLOW
 ```
 
-### AquaFetcher — fetch aquaculture capacity
+### Aqua — fetch aquaculture capacity
 
 ```bash
-java -jar target/AquaFetcher.jar
+java -jar target/OrgNrGui.jar --command=AQUA
 ```
 
 Output: `AquacultureCapacity.csv`
 
-### AquaFetcher — merge into Excel (column K)
+### Aqua — merge into Excel (column K)
 
 ```bash
-java -jar target/AquaFetcher.jar --merge-excel --highlight-color=LIGHT_BLUE
+java -jar target/OrgNrGui.jar --command=AQUA --merge-excel --highlight-color=LIGHT_BLUE
 ```
 
-### MtbCalc — calculate fees
+### MTB — calculate fees
 
 ```bash
-java -jar target/MtbCalc.jar
+java -jar target/OrgNrGui.jar --command=MTBCALC
 ```
 
 Input `MtbInput.txt` (one konsern per line):
@@ -227,9 +223,9 @@ ELVEVOLL SETTEFISK,,,7100,6100
 ## Architecture
 
 ```
-OrgNrs.txt   → CompanyFetcher.jar → CompanyFinancials.csv → Excel (E, G, I)
-OrgNrs.txt   → AquaFetcher.jar    → AquacultureCapacity.csv → Excel (K)
-MtbInput.txt → MtbCalc.jar        → MtbCalc.csv
+OrgNrs.txt   → --command=PROF → CompanyFinancials.csv → Excel (E, G, I)
+OrgNrs.txt   → --command=AQUA → AquacultureCapacity.csv → Excel (K)
+MtbInput.txt → --command=MTBCALC → MtbCalc.csv
 ```
 
 All three JARs share the same codebase (`no.companyfetcher` package) with separate entry points.

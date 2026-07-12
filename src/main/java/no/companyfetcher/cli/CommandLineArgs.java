@@ -5,7 +5,29 @@ import no.companyfetcher.output.HighlightColor;
 
 public final class CommandLineArgs {
 
+    public static final String JAR_NAME = "OrgNrGui.jar";
+
+    public enum Command {
+        PROF,
+        AQUA,
+        MTBCALC
+    }
+
     private CommandLineArgs() {
+    }
+
+    public static boolean isGuiMode(String[] args) {
+        return args.length == 0 || parseCommand(args) == null;
+    }
+
+    public static Command parseCommand(String[] args) {
+        for (String arg : args) {
+            if (arg.startsWith("--command=")) {
+                String value = arg.substring("--command=".length()).trim().toUpperCase();
+                return Command.valueOf(value);
+            }
+        }
+        return null;
     }
 
     public static boolean isMergeExcelMode(String[] args) {
@@ -19,6 +41,10 @@ public final class CommandLineArgs {
             }
         }
         return false;
+    }
+
+    public static ExcelMergeOptions parseMergeOptions(String[] args) {
+        return parseMergeOptions(args, JAR_NAME);
     }
 
     public static ExcelMergeOptions parseMergeOptions(String[] args, String jarName) {
@@ -40,7 +66,7 @@ public final class CommandLineArgs {
         if (colorArg == null || colorArg.isBlank()) {
             throw new IllegalArgumentException("""
                     Missing --highlight-color for --merge-excel.
-                    Example: java -jar %s --merge-excel --highlight-color=LIGHT_YELLOW
+                    Example: java -jar %s --command=PROF --merge-excel --highlight-color=LIGHT_YELLOW
                     Use a different color on each run to see which cells were updated in the latest pass.
                     Available names: LIGHT_YELLOW, LIGHT_GREEN, LIGHT_BLUE, LIGHT_ORANGE, CORAL
                     Or use hex, e.g. --highlight-color=#FFF2CC
@@ -48,5 +74,19 @@ public final class CommandLineArgs {
         }
 
         return ExcelMergeOptions.withHighlight(HighlightColor.parse(colorArg));
+    }
+
+    public static String usage() {
+        return """
+                Usage:
+                  java -jar %s
+                  java -jar %s --command=PROF
+                  java -jar %s --command=PROF --merge-excel --highlight-color=LIGHT_YELLOW
+                  java -jar %s --command=AQUA
+                  java -jar %s --command=AQUA --merge-excel --highlight-color=LIGHT_BLUE
+                  java -jar %s --command=MTBCALC
+                
+                Commands: PROF, AQUA, MTBCALC
+                No arguments opens the GUI.""".formatted(JAR_NAME, JAR_NAME, JAR_NAME, JAR_NAME, JAR_NAME, JAR_NAME);
     }
 }

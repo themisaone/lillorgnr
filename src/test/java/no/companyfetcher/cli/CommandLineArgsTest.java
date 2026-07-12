@@ -3,16 +3,32 @@ package no.companyfetcher.cli;
 import no.companyfetcher.output.ExcelMergeOptions;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CommandLineArgsTest {
 
     @Test
+    void noArgsMeansGuiMode() {
+        assertTrue(CommandLineArgs.isGuiMode(new String[]{}));
+    }
+
+    @Test
+    void parsesCommand() {
+        assertEquals(CommandLineArgs.Command.PROF, CommandLineArgs.parseCommand(new String[]{"--command=PROF"}));
+        assertEquals(CommandLineArgs.Command.AQUA, CommandLineArgs.parseCommand(new String[]{"--command=aqua"}));
+        assertEquals(CommandLineArgs.Command.MTBCALC, CommandLineArgs.parseCommand(new String[]{"--command=MTBCALC"}));
+        assertNull(CommandLineArgs.parseCommand(new String[]{"--merge-excel"}));
+        assertFalse(CommandLineArgs.isGuiMode(new String[]{"--command=PROF"}));
+    }
+
+    @Test
     void requiresHighlightColorForMerge() {
         assertThrows(IllegalArgumentException.class, () ->
-                CommandLineArgs.parseMergeOptions(new String[]{"--merge-excel"}, "CompanyFetcher.jar"));
+                CommandLineArgs.parseMergeOptions(new String[]{"--merge-excel"}));
     }
 
     @Test
@@ -20,7 +36,7 @@ class CommandLineArgsTest {
         ExcelMergeOptions options = CommandLineArgs.parseMergeOptions(new String[]{
                 "--merge-excel",
                 "--highlight-color=LIGHT_GREEN"
-        }, "CompanyFetcher.jar");
+        });
 
         assertTrue(options.highlightUpdatedCells());
     }
@@ -30,7 +46,7 @@ class CommandLineArgsTest {
         ExcelMergeOptions options = CommandLineArgs.parseMergeOptions(new String[]{
                 "--merge-excel",
                 "--no-highlight"
-        }, "CompanyFetcher.jar");
+        });
 
         assertFalse(options.highlightUpdatedCells());
     }
