@@ -29,7 +29,7 @@ public class TextFileReader implements CompanyInputReader {
             List<String> orgNumbers = Files.lines(inputFile)
                     .map(String::trim)
                     .filter(line -> !line.isEmpty() && !line.startsWith("#"))
-                    .map(line -> line.replaceAll("\\s+", ""))
+                    .map(OrgNrInputNormalizer::normalizeOrgNumber)
                     .collect(Collectors.toList());
 
             log.info("Read {} organization numbers from {}", orgNumbers.size(), inputFile.getFileName());

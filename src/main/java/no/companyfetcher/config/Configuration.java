@@ -72,16 +72,8 @@ public class Configuration {
         return requireAccounting("mtb.stages.file");
     }
 
-    public long getMedlKontigent() {
-        return Long.parseLong(requireAccounting("medl.kontigent"));
-    }
-
-    public long getServAvgift() {
-        return Long.parseLong(requireAccounting("serv.avgift"));
-    }
-
-    public String getProffOutputFile() {
-        return require("proff.output.file");
+    public String getOutputFile() {
+        return require("output.file");
     }
 
     public String getProffAquaInputFile() {
@@ -110,18 +102,6 @@ public class Configuration {
 
     public String getExcelFile() {
         return require("excel.file");
-    }
-
-    public String getAquaOutputFile() {
-        return require("aqua.output.file");
-    }
-
-    public String getMtbInputFile() {
-        return require("mtb.input.file");
-    }
-
-    public String getMtbOutputFile() {
-        return require("mtb.output.file");
     }
 
     public String getFiskeridirApiBaseUrl() {

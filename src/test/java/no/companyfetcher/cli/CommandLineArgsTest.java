@@ -18,11 +18,12 @@ class CommandLineArgsTest {
 
     @Test
     void parsesCommand() {
+        assertEquals(CommandLineArgs.Command.FETCH, CommandLineArgs.parseCommand(new String[]{"--command=FETCH"}));
         assertEquals(CommandLineArgs.Command.PROF, CommandLineArgs.parseCommand(new String[]{"--command=PROF"}));
         assertEquals(CommandLineArgs.Command.AQUA, CommandLineArgs.parseCommand(new String[]{"--command=aqua"}));
-        assertEquals(CommandLineArgs.Command.MTBCALC, CommandLineArgs.parseCommand(new String[]{"--command=MTBCALC"}));
+        assertEquals(CommandLineArgs.Command.MTB, CommandLineArgs.parseCommand(new String[]{"--command=MTB"}));
         assertNull(CommandLineArgs.parseCommand(new String[]{"--merge-excel"}));
-        assertFalse(CommandLineArgs.isGuiMode(new String[]{"--command=PROF"}));
+        assertFalse(CommandLineArgs.isGuiMode(new String[]{"--command=FETCH"}));
     }
 
     @Test

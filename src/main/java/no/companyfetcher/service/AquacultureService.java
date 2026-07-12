@@ -32,7 +32,7 @@ public class AquacultureService {
             String orgNumber = orgNumbers.get(index);
             log.info("Fetching aquaculture capacity for {}", orgNumber);
 
-            AquacultureCapacityData data = fetchSingle(orgNumber);
+            AquacultureCapacityData data = fetchOne(orgNumber);
             results.add(data);
 
             if (data.status() != null && data.status().startsWith("FAILED")) {
@@ -53,6 +53,10 @@ public class AquacultureService {
         }
 
         return results;
+    }
+
+    public AquacultureCapacityData fetchOne(String orgNumber) {
+        return fetchSingle(orgNumber);
     }
 
     private AquacultureCapacityData fetchSingle(String orgNumber) {

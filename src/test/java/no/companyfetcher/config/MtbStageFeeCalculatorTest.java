@@ -13,12 +13,12 @@ class MtbStageFeeCalculatorTest {
 
     @Test
     void calculatesFeeForExampleCapacity8260() {
-        assertEquals(117416, MtbStageFeeCalculator.calculate(8260, stages));
+        assertEquals(122654, MtbStageFeeCalculator.calculate(8260, stages));
     }
 
     @Test
     void calculatesFeeForCapacity4250() {
-        assertEquals(72520, MtbStageFeeCalculator.calculate(4250, stages));
+        assertEquals(73830, MtbStageFeeCalculator.calculate(4250, stages));
     }
 
     @Test

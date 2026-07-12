@@ -23,12 +23,6 @@ cat > "$DEPLOY_DIR/OrgNrs.txt" <<'EOF'
 # 994613405
 EOF
 
-cat > "$DEPLOY_DIR/MtbInput.txt" <<'EOF'
-# Navn,MTB (tomme linjer og linjer som starter med # ignoreres)
-# Eksempel:
-# ARNØY LAKS,4250
-EOF
-
 cat > "$DEPLOY_DIR/StartGui.bat" <<'EOF'
 @echo off
 cd /d "%~dp0"
@@ -53,8 +47,7 @@ Start:
   Dobbeltklikk StartGui.bat
 
 Filer du redigerer:
-  OrgNrs.txt      - org.nr for Proff og Akvakultur (Rediger inndatafil i GUI)
-  MtbInput.txt    - navn,MTB for gebyrberegning
+  OrgNrs.txt      - én org.nr per linje
 
 Excel:
   Legg din egen Excel-fil i denne mappen.
@@ -65,9 +58,7 @@ Viktig:
   Lukk Excel-filen før du slår sammen data fra GUI.
 
 Output (opprettes automatisk):
-  CompanyFinancials.csv
-  AquacultureCapacity.csv
-  MtbCalc.csv
+  OrgNrReport.csv
 EOF
 
 echo ""

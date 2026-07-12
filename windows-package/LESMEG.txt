@@ -8,8 +8,7 @@ Start:
   Dobbeltklikk StartGui.bat
 
 Filer du redigerer:
-  OrgNrs.txt      - org.nr for Proff og Akvakultur (Rediger inndatafil i GUI)
-  MtbInput.txt    - navn,MTB for gebyrberegning
+  OrgNrs.txt      - én org.nr per linje
 
 Excel:
   Legg din egen Excel-fil i denne mappen.
@@ -20,6 +19,4 @@ Viktig:
   Lukk Excel-filen før du slår sammen data fra GUI.
 
 Output (opprettes automatisk):
-  CompanyFinancials.csv
-  AquacultureCapacity.csv
-  MtbCalc.csv
+  OrgNrReport.csv

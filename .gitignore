@@ -6,15 +6,11 @@ logs/
 *.log
 
 # Generated output
-CompanyFinancials.csv
-AquacultureCapacity.csv
-MtbCalc.csv
+OrgNrReport.csv
 
 # Local runtime data (remove from .gitignore if you want these in the repo)
 OrgNrs.txt
 !windows-package/OrgNrs.txt
-MtbInput.txt
-!windows-package/MtbInpu.txt
 
 # Excel / LibreOffice lock files
 .~lock.*

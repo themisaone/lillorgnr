@@ -10,6 +10,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.io.IOException;
+import no.companyfetcher.input.OrgNrInputNormalizer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -45,6 +46,19 @@ final class FileViewer {
 
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
             if (editable) {
+                JButton cleanButton = new JButton("Rens org.nr");
+                cleanButton.addActionListener(event -> {
+                    String cleaned = OrgNrInputNormalizer.cleanFileContent(textArea.getText());
+                    textArea.setText(cleaned);
+                    JOptionPane.showMessageDialog(
+                            dialog,
+                            "Komma og mellomrom er fjernet fra org.nr-linjer.\nLagre for å beholde endringene.",
+                            "Rens org.nr",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                });
+                buttonPanel.add(cleanButton);
+
                 JButton saveButton = new JButton("Lagre");
                 saveButton.addActionListener(event -> {
                     if (saveFile(file, textArea.getText(), parent)) {

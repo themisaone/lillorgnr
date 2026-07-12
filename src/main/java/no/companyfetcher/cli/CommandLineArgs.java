@@ -8,9 +8,10 @@ public final class CommandLineArgs {
     public static final String JAR_NAME = "OrgNrGui.jar";
 
     public enum Command {
+        FETCH,
         PROF,
         AQUA,
-        MTBCALC
+        MTB
     }
 
     private CommandLineArgs() {
@@ -80,13 +81,12 @@ public final class CommandLineArgs {
         return """
                 Usage:
                   java -jar %s
-                  java -jar %s --command=PROF
+                  java -jar %s --command=FETCH
                   java -jar %s --command=PROF --merge-excel --highlight-color=LIGHT_YELLOW
-                  java -jar %s --command=AQUA
                   java -jar %s --command=AQUA --merge-excel --highlight-color=LIGHT_BLUE
-                  java -jar %s --command=MTBCALC
+                  java -jar %s --command=MTB --merge-excel --highlight-color=LIGHT_GREEN
                 
-                Commands: PROF, AQUA, MTBCALC
-                No arguments opens the GUI.""".formatted(JAR_NAME, JAR_NAME, JAR_NAME, JAR_NAME, JAR_NAME, JAR_NAME);
+                Commands: FETCH, PROF/AQUA/MTB (merge only)
+                No arguments opens the GUI.""".formatted(JAR_NAME, JAR_NAME, JAR_NAME, JAR_NAME, JAR_NAME);
     }
 }

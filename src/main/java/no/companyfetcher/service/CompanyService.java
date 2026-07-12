@@ -32,7 +32,7 @@ public class CompanyService {
             String orgNumber = orgNumbers.get(index);
             log.info("Fetching {}", orgNumber);
 
-            CompanyData company = fetchSingle(orgNumber);
+            CompanyData company = fetchOne(orgNumber);
             results.add(company);
 
             if (company.status() != null && company.status().startsWith("FAILED")) {
@@ -47,6 +47,10 @@ public class CompanyService {
         }
 
         return results;
+    }
+
+    public CompanyData fetchOne(String orgNumber) {
+        return fetchSingle(orgNumber);
     }
 
     private CompanyData fetchSingle(String orgNumber) {

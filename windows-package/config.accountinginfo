@@ -6,7 +6,3 @@ mtb.formal.allowed=kommersiell
 
 # MTB satser for 2025
 mtb.stages.file=config.mtbstages
-
-# Satser for 2025
-medl.kontigent=14200
-serv.avgift=12200
