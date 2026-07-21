@@ -1,5 +1,6 @@
 package no.companyfetcher.gui;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
@@ -7,6 +8,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.io.IOException;
@@ -35,14 +37,16 @@ final class FileViewer {
             JTextArea textArea = new JTextArea(content);
             textArea.setEditable(editable);
             textArea.setCaretPosition(0);
+            textArea.setLineWrap(false);
+
+            JScrollPane scrollPane = new JScrollPane(textArea);
+            scrollPane.setBorder(BorderFactory.createLineBorder(Color.GRAY));
 
             JDialog dialog = new JDialog(
                     JOptionPane.getFrameForComponent(parent),
                     file.getFileName().toString(),
                     true
             );
-            dialog.setLayout(new BorderLayout(8, 8));
-            dialog.add(new JScrollPane(textArea), BorderLayout.CENTER);
 
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
             if (editable) {
@@ -87,7 +91,14 @@ final class FileViewer {
                 dialog.dispose();
             });
             buttonPanel.add(closeButton);
-            dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+            JPanel dialogContent = new JPanel(new BorderLayout(0, 12));
+            dialogContent.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+            dialogContent.add(scrollPane, BorderLayout.CENTER);
+            dialogContent.add(buttonPanel, BorderLayout.SOUTH);
+
+            dialog.setLayout(new BorderLayout());
+            dialog.add(dialogContent, BorderLayout.CENTER);
 
             dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
             dialog.addWindowListener(new java.awt.event.WindowAdapter() {

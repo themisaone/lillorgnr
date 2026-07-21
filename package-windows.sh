@@ -27,7 +27,7 @@ cat > "$DEPLOY_DIR/StartGui.bat" <<'EOF'
 @echo off
 cd /d "%~dp0"
 echo Starter Org.nr verktoy...
-java -jar OrgNrGui.jar
+java -Dsun.java2d.uiScale.enabled=true -jar OrgNrGui.jar
 if errorlevel 1 (
     echo.
     echo Feil ved oppstart. Er Java 21 installert?

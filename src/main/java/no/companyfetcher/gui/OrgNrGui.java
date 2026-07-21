@@ -14,13 +14,15 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -31,6 +33,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OrgNrGui extends JFrame {
+
+    private static final Dimension ACTION_BUTTON_SIZE = new Dimension(220, 32);
+    private static final int HELP_TEXT_WIDTH_PX = 860;
+    private static final int LOG_AREA_MIN_HEIGHT_PX = 240;
 
     private static final String[] HIGHLIGHT_COLORS = {
             "LIGHT_GREEN",
@@ -48,17 +54,38 @@ public class OrgNrGui extends JFrame {
     public OrgNrGui() {
         super("Org.nr verktøy");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(720, 560));
+        setMinimumSize(new Dimension(900, 680));
+        setSize(900, 780);
         setLocationRelativeTo(null);
 
         logArea.setEditable(false);
         logArea.setLineWrap(true);
         logArea.setWrapStyleWord(true);
 
-        JPanel content = new JPanel(new BorderLayout(8, 8));
+        JPanel content = new JPanel(new GridBagLayout());
         content.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        content.add(buildButtonPanel(), BorderLayout.NORTH);
-        content.add(new JScrollPane(logArea), BorderLayout.CENTER);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        content.add(buildButtonPanel(), gbc);
+
+        JScrollPane logScroll = new JScrollPane(logArea);
+        logScroll.setPreferredSize(new Dimension(0, LOG_AREA_MIN_HEIGHT_PX));
+        logScroll.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+
+        JPanel logPanel = new JPanel(new BorderLayout(0, 6));
+        logPanel.add(new JLabel("Log"), BorderLayout.NORTH);
+        logPanel.add(logScroll, BorderLayout.CENTER);
+
+        gbc.gridy = 1;
+        gbc.insets = new Insets(12, 0, 0, 0);
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        content.add(logPanel, gbc);
 
         setContentPane(content);
         appendLog("Klar. Lukk Excel før du slår sammen data.");
@@ -80,42 +107,146 @@ public class OrgNrGui extends JFrame {
 
     private JPanel buildSection() {
         JPanel section = new JPanel(new BorderLayout(6, 6));
-        section.setBorder(BorderFactory.createTitledBorder("Org.nr data"));
 
-        JPanel modeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        JPanel modePanel = new JPanel(new GridBagLayout());
+        GridBagConstraints modePanelGbc = westGbc();
+        modePanelGbc.weightx = 1.0;
+        modePanelGbc.fill = GridBagConstraints.HORIZONTAL;
+        modePanel.add(new JSeparator(), modePanelGbc);
+
+        JPanel modeRow = new JPanel(new GridBagLayout());
+        GridBagConstraints modeGbc = westGbc();
+        modeGbc.insets = new Insets(0, 0, 0, 8);
+        modeRow.add(new JLabel("Velg data som skal hentes:"), modeGbc);
+        modeGbc.gridx = 1;
+        modeRow.add(proffOnlyMode, modeGbc);
+        modeGbc.gridx = 2;
+        modeGbc.insets = new Insets(0, 0, 0, 0);
+        modeRow.add(proffAndMtbMode, modeGbc);
+
+        modePanelGbc.gridy = 1;
+        modePanelGbc.insets = new Insets(8, 0, 8, 0);
+        modePanel.add(modeRow, modePanelGbc);
+
         ButtonGroup modeGroup = new ButtonGroup();
         modeGroup.add(proffOnlyMode);
         modeGroup.add(proffAndMtbMode);
         modeSelectors.add(proffOnlyMode);
         modeSelectors.add(proffAndMtbMode);
-        modeRow.add(proffOnlyMode);
-        modeRow.add(proffAndMtbMode);
-        section.add(modeRow, BorderLayout.NORTH);
 
-        JPanel row0 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        row0.add(button("Rediger OrgNrs.txt", () ->
-                editInputFile(Path.of(Configuration.load().getProffAquaInputFile()))));
-        row0.add(button("Vis resultat-CSV", () ->
-                viewResultFile(Path.of(Configuration.load().getOutputFile()))));
+        modePanelGbc.gridy = 2;
+        modePanelGbc.insets = new Insets(0, 0, 0, 0);
+        modePanel.add(new JSeparator(), modePanelGbc);
+        section.add(modePanel, BorderLayout.NORTH);
 
-        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        row1.add(button("Hent data", () ->
-                runTask("Data-henting", () ->
-                        ApplicationTasks.fetchAll(Configuration.load(), selectedMode()))));
+        String excelFile = Configuration.load().getExcelFile();
+        JPanel actions = new JPanel(new GridBagLayout());
+        GridBagConstraints rowGbc = new GridBagConstraints();
+        rowGbc.gridx = 0;
+        rowGbc.gridy = 0;
+        rowGbc.weightx = 1.0;
+        rowGbc.fill = GridBagConstraints.HORIZONTAL;
+        rowGbc.insets = new Insets(2, 0, 2, 0);
 
-        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        row2.add(button("Slå sammen til Excel", () ->
-                runMergeTask("Excel-sammenslåing", mergeColorSelector)));
-        row2.add(new JLabel("Markeringsfarge:"));
-        row2.add(mergeColorSelector);
+        actions.add(buildActionRow(
+                actionButton("Rediger OrgNrs.txt", () ->
+                        editInputFile(Path.of(Configuration.load().getProffAquaInputFile()))),
+                "Kopier organisasjonsnummer i filen. Tomme linjer er ufarlige, "
+                        + "men du kan bruke «Rens org.nr» og «Lagre» før du utfører «Hent data»."
+        ), rowGbc);
+        addRowSeparator(actions, rowGbc);
 
-        JPanel actions = new JPanel(new BorderLayout(6, 6));
-        actions.add(row0, BorderLayout.NORTH);
-        actions.add(row1, BorderLayout.CENTER);
-        actions.add(row2, BorderLayout.SOUTH);
+        actions.add(buildActionRow(
+                actionButton("Hent data", () ->
+                        runTask("Data-henting", () ->
+                                ApplicationTasks.fetchAll(Configuration.load(), selectedMode()))),
+                "Henter data fra Proff.no og (hvis «Proff og MTB» er valgt) også fra "
+                        + "Fiskeridirektoratet (aqua) og MTB-gebyrer. Resultatet lagres i CSV-filen."
+        ), rowGbc);
+        addRowSeparator(actions, rowGbc);
+
+        actions.add(buildActionRow(
+                actionButton("Vis resultat-CSV", () ->
+                        viewResultFile(Path.of(Configuration.load().getOutputFile()))),
+                "Viser CSV-filen med hentede data. Sjekk at alt ser riktig ut før du "
+                        + "slår sammen til Excel."
+        ), rowGbc);
+        addRowSeparator(actions, rowGbc);
+
+        actions.add(buildMergeRow(excelFile), rowGbc);
+        addRowSeparator(actions, rowGbc);
+
         section.add(actions, BorderLayout.CENTER);
 
         return section;
+    }
+
+    private void addRowSeparator(JPanel panel, GridBagConstraints gbc) {
+        gbc.gridy++;
+        gbc.insets = new Insets(8, 0, 8, 0);
+        panel.add(new JSeparator(), gbc);
+        gbc.gridy++;
+        gbc.insets = new Insets(2, 0, 2, 0);
+    }
+
+    private JPanel buildActionRow(JButton button, String helpText) {
+        JPanel row = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = westGbc();
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        row.add(wrapHelpLabel(helpText), gbc);
+
+        gbc = westGbc();
+        gbc.gridy = 1;
+        gbc.insets = new Insets(6, 0, 0, 0);
+        row.add(button, gbc);
+        return row;
+    }
+
+    private JPanel buildMergeRow(String excelFile) {
+        JPanel row = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = westGbc();
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        row.add(wrapHelpLabel(
+                "Kopierer data fra CSV til Excel-filen (kolonner E, G, I ved «Bare Proff», "
+                        + "eller E, G, I, K, M ved «Proff og MTB»). Lukk Excel-filen først.<br>"
+                        + "Excel-filen som oppdateres er: " + excelFile
+        ), gbc);
+
+        JButton mergeButton = actionButton("Slå sammen til Excel", () ->
+                runMergeTask("Excel-sammenslåing", mergeColorSelector));
+
+        gbc = westGbc();
+        gbc.gridy = 1;
+        gbc.insets = new Insets(6, 0, 0, 0);
+        row.add(mergeButton, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(6, 8, 0, 0);
+        row.add(new JLabel("Markeringsfarge:"), gbc);
+
+        gbc.gridx = 2;
+        row.add(mergeColorSelector, gbc);
+        return row;
+    }
+
+    private GridBagConstraints westGbc() {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        return gbc;
+    }
+
+    private JLabel wrapHelpLabel(String text) {
+        JLabel label = new JLabel(
+                "<html><body style='width:" + HELP_TEXT_WIDTH_PX + "px;text-align:left'>"
+                        + text
+                        + "</body></html>"
+        );
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
     }
 
     private ReportRunMode selectedMode() {
@@ -132,9 +263,11 @@ public class OrgNrGui extends JFrame {
         FileViewer.view(file, this, false, null);
     }
 
-    private JButton button(String text, Runnable action) {
+    private JButton actionButton(String text, Runnable action) {
         JButton button = new JButton(text);
         button.addActionListener(event -> action.run());
+        button.setPreferredSize(ACTION_BUTTON_SIZE);
+        button.setMinimumSize(ACTION_BUTTON_SIZE);
         return button;
     }
 
@@ -255,11 +388,13 @@ public class OrgNrGui extends JFrame {
     }
 
     public static void main(String[] args) {
+        GuiDisplayConfig.applyBeforeGuiStartup();
         SwingUtilities.invokeLater(() -> {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {
             }
+            GuiDisplayConfig.applyUiFonts();
 
             OrgNrGui gui = new OrgNrGui();
             gui.setVisible(true);
