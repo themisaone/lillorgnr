@@ -2,6 +2,7 @@ package no.companyfetcher.gui;
 
 import no.companyfetcher.config.Configuration;
 import no.companyfetcher.model.ReportRunMode;
+import no.companyfetcher.output.EmptyValueProcessing;
 import no.companyfetcher.tasks.ApplicationTasks;
 
 import javax.swing.BorderFactory;
@@ -35,6 +36,7 @@ public class OrgNrGui extends JFrame {
 
     private static final Dimension ACTION_BUTTON_SIZE = new Dimension(220, 32);
     private static final int WIDE_DIALOG_WIDTH_PX = 520;
+    private static final int INFO_DIALOG_WIDTH_PX = 380;
     private static final int LOG_AREA_MIN_HEIGHT_PX = 240;
 
     private static final String[] HIGHLIGHT_COLORS = {
@@ -106,12 +108,21 @@ public class OrgNrGui extends JFrame {
 
     private JPanel buildSection() {
         JPanel section = new JPanel(new BorderLayout(6, 6));
+        Configuration configuration = Configuration.load();
 
-        JPanel modePanel = new JPanel(new GridBagLayout());
-        GridBagConstraints modePanelGbc = westGbc();
-        modePanelGbc.weightx = 1.0;
-        modePanelGbc.fill = GridBagConstraints.HORIZONTAL;
-        modePanel.add(new JSeparator(), modePanelGbc);
+        JPanel topPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints topGbc = westGbc();
+        topGbc.weightx = 1.0;
+        topGbc.fill = GridBagConstraints.HORIZONTAL;
+        topPanel.add(new JSeparator(), topGbc);
+
+        topGbc.gridy = 1;
+        topGbc.insets = new Insets(8, 0, 8, 0);
+        topPanel.add(buildConfigInfoPanel(configuration), topGbc);
+
+        topGbc.gridy = 2;
+        topGbc.insets = new Insets(0, 0, 8, 0);
+        topPanel.add(new JSeparator(), topGbc);
 
         JPanel modeRow = new JPanel(new GridBagLayout());
         GridBagConstraints modeGbc = westGbc();
@@ -123,9 +134,13 @@ public class OrgNrGui extends JFrame {
         modeGbc.insets = new Insets(0, 0, 0, 0);
         modeRow.add(proffAndMtbMode, modeGbc);
 
-        modePanelGbc.gridy = 1;
-        modePanelGbc.insets = new Insets(8, 0, 8, 0);
-        modePanel.add(modeRow, modePanelGbc);
+        topGbc.gridy = 3;
+        topGbc.insets = new Insets(0, 0, 8, 0);
+        topPanel.add(modeRow, topGbc);
+
+        topGbc.gridy = 4;
+        topGbc.insets = new Insets(0, 0, 0, 0);
+        topPanel.add(new JSeparator(), topGbc);
 
         ButtonGroup modeGroup = new ButtonGroup();
         modeGroup.add(proffOnlyMode);
@@ -133,12 +148,9 @@ public class OrgNrGui extends JFrame {
         modeSelectors.add(proffOnlyMode);
         modeSelectors.add(proffAndMtbMode);
 
-        modePanelGbc.gridy = 2;
-        modePanelGbc.insets = new Insets(0, 0, 0, 0);
-        modePanel.add(new JSeparator(), modePanelGbc);
-        section.add(modePanel, BorderLayout.NORTH);
+        section.add(topPanel, BorderLayout.NORTH);
 
-        String excelFile = Configuration.load().getExcelFile();
+        String excelFile = configuration.getExcelFile();
         JPanel actions = new JPanel(new GridBagLayout());
         GridBagConstraints rowGbc = new GridBagConstraints();
         rowGbc.gridx = 0;
@@ -186,6 +198,29 @@ public class OrgNrGui extends JFrame {
         section.add(actions, BorderLayout.CENTER);
 
         return section;
+    }
+
+    private JPanel buildConfigInfoPanel(Configuration configuration) {
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = westGbc();
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(0, 0, 4, 0);
+
+        panel.add(new JLabel("Regnskap for: " + configuration.getAccountingYear()), gbc);
+
+        gbc.gridy = 1;
+        panel.add(new JLabel("Excel dokument som oppdateres: " + configuration.getExcelFile()), gbc);
+
+        gbc.gridy = 2;
+        panel.add(new JLabel("Hvis regnskap ikke funnet: " + describeEmptyValueProcessing(configuration)), gbc);
+        return panel;
+    }
+
+    private String describeEmptyValueProcessing(Configuration configuration) {
+        return configuration.getEmptyValueProcessing() == EmptyValueProcessing.CLEAR
+                ? "Fjern eksisterende verdi og set farge"
+                : "Ikke forandre eksisterende felt";
     }
 
     private void addRowSeparator(JPanel panel, GridBagConstraints gbc) {
@@ -250,21 +285,64 @@ public class OrgNrGui extends JFrame {
     }
 
     private void confirmAndFetchData() {
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
+        int confirm = showWideConfirmDialog(
+                "Hent data",
                 """
                         Har du fullført steg 1 og lagt til nye organisasjonsnummer?
 
                         Fortsette med data-henting?""",
-                "Hent data",
-                JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.QUESTION_MESSAGE
         );
         if (confirm != JOptionPane.OK_OPTION) {
             return;
         }
-        runTask("Data-henting", () ->
-                ApplicationTasks.fetchAll(Configuration.load(), selectedMode()));
+        runFetchTask();
+    }
+
+    private void runFetchTask() {
+        appendLog("Starter: Data-henting (" + modeLabel(selectedMode()) + ") ...");
+        setControlsEnabled(false);
+
+        new SwingWorker<String, String>() {
+            private GuiLogBridge logBridge;
+
+            @Override
+            protected String doInBackground() {
+                logBridge = GuiLogBridge.attach(this::publish);
+                try {
+                    return ApplicationTasks.fetchAll(Configuration.load(), selectedMode());
+                } finally {
+                    logBridge.close();
+                }
+            }
+
+            @Override
+            protected void process(java.util.List<String> chunks) {
+                for (String line : chunks) {
+                    appendRawLog(line);
+                }
+            }
+
+            @Override
+            protected void done() {
+                setControlsEnabled(true);
+                try {
+                    String summary = get().strip();
+                    appendLog(summary);
+                    appendLog("Ferdig: Data-henting");
+                    showFetchSummaryDialog(summary);
+                } catch (Exception e) {
+                    String message = e.getMessage() == null ? e.toString() : e.getMessage();
+                    appendLog("FEIL i Data-henting: " + message);
+                    JOptionPane.showMessageDialog(
+                            OrgNrGui.this,
+                            message,
+                            "Feil",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        }.execute();
     }
 
     private void showHighlightColorDialog() {
@@ -351,17 +429,41 @@ public class OrgNrGui extends JFrame {
     private int showWideConfirmDialog(String title, String message, int messageType) {
         return JOptionPane.showConfirmDialog(
                 this,
-                wrapDialogMessage(message),
+                wrapDialogMessage(appendSpacingBeforeButtons(message)),
                 title,
                 JOptionPane.OK_CANCEL_OPTION,
                 messageType
         );
     }
 
+    private String appendSpacingBeforeButtons(String message) {
+        if (message.contains("Fortsette")) {
+            return message.stripTrailing() + "\n\n";
+        }
+        return message;
+    }
+
     private String wrapDialogMessage(String message) {
-        return "<html><body style='width:" + WIDE_DIALOG_WIDTH_PX + "px'>"
+        return wrapDialogMessage(message, WIDE_DIALOG_WIDTH_PX);
+    }
+
+    private String wrapDialogMessage(String message, int widthPx) {
+        return "<html><body style='width:" + widthPx + "px'>"
                 + message.replace("\n", "<br>")
                 + "</body></html>";
+    }
+
+    private void showFetchSummaryDialog(String summary) {
+        showInfoDialog("Data-henting fullført", summary + "\n\n");
+    }
+
+    private void showInfoDialog(String title, String message) {
+        JOptionPane.showMessageDialog(
+                this,
+                wrapDialogMessage(message, INFO_DIALOG_WIDTH_PX),
+                title,
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     private void runBackground(String taskName, java.util.function.Supplier<String> task) {

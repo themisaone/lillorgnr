@@ -21,13 +21,14 @@ public final class OrgNrReportSummary {
 
         if (mode == ReportRunMode.PROFF_ONLY) {
             return """
-                    
                     --- Oppsummering ---
+                    
                     Modus: Bare Proff
                     Antall linjer: %d
                     Proff OK: %d
                     Proff feilet: %d
                     Output: %s
+                    
                     """.formatted(total, proffOk, proffFailed, outputFile);
         }
 
@@ -36,8 +37,8 @@ public final class OrgNrReportSummary {
         long aquaNoMatching = rows.stream().filter(OrgNrReportSummary::isAquaNoMatching).count();
 
         return """
-                
                 --- Oppsummering ---
+                
                 Modus: Proff og MTB
                 Antall linjer: %d
                 Proff OK: %d
@@ -46,6 +47,7 @@ public final class OrgNrReportSummary {
                 Aqua ikke funnet: %d
                 Aqua uten treff: %d
                 Output: %s
+                
                 """.formatted(
                 total,
                 proffOk,
