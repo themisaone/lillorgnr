@@ -80,9 +80,10 @@ public class ReportExcelUpdater {
                     continue;
                 }
 
-                applyScope(row, rowData, scope, styleCache);
-                updatedRows++;
-                log.info("Updated row {} ({}) with {}", row.getRowNum() + 1, orgNumber, scope);
+                if (applyScope(row, rowData, scope, styleCache)) {
+                    updatedRows++;
+                    log.info("Updated row {} ({}) with {}", row.getRowNum() + 1, orgNumber, scope);
+                }
             }
 
             try (OutputStream output = Files.newOutputStream(excelFile)) {
@@ -96,53 +97,61 @@ public class ReportExcelUpdater {
         }
     }
 
-    private void applyScope(Row row, OrgNrReportData data, Scope scope, StyleCache styleCache) {
-        switch (scope) {
+    private boolean applyScope(Row row, OrgNrReportData data, Scope scope, StyleCache styleCache) {
+        return switch (scope) {
             case PROF -> writeProff(row, data, styleCache);
             case AQUA -> writeAqua(row, data, styleCache);
             case FEE -> writeFee(row, data, styleCache);
-            case ALL -> {
-                writeProff(row, data, styleCache);
-                writeAqua(row, data, styleCache);
-                writeFee(row, data, styleCache);
+            case ALL -> writeProff(row, data, styleCache)
+                    | writeAqua(row, data, styleCache)
+                    | writeFee(row, data, styleCache);
+        };
+    }
+
+    private boolean writeProff(Row row, OrgNrReportData data, StyleCache styleCache) {
+        return writeLongCell(row, COL_REVENUE, data.revenue(), styleCache)
+                | writeLongCell(row, COL_SALARY, data.salaryCost(), styleCache)
+                | writeLongCell(row, COL_EBIT, data.ebit(), styleCache);
+    }
+
+    private boolean writeAqua(Row row, OrgNrReportData data, StyleCache styleCache) {
+        return writeDoubleCell(row, COL_TOTAL_CAPACITY, data.totalCapacity(), styleCache);
+    }
+
+    private boolean writeFee(Row row, OrgNrReportData data, StyleCache styleCache) {
+        return writeLongCell(row, COL_FEE, data.fee(), styleCache);
+    }
+
+    private boolean writeLongCell(Row row, int columnIndex, Long value, StyleCache styleCache) {
+        if (value == null) {
+            if (!options.emptyValueProcessing().clearsEmptyCells()) {
+                return false;
             }
-        }
-    }
-
-    private void writeProff(Row row, OrgNrReportData data, StyleCache styleCache) {
-        writeLongCell(row, COL_REVENUE, data.revenue(), styleCache);
-        writeLongCell(row, COL_SALARY, data.salaryCost(), styleCache);
-        writeLongCell(row, COL_EBIT, data.ebit(), styleCache);
-    }
-
-    private void writeAqua(Row row, OrgNrReportData data, StyleCache styleCache) {
-        writeDoubleCell(row, COL_TOTAL_CAPACITY, data.totalCapacity(), styleCache);
-    }
-
-    private void writeFee(Row row, OrgNrReportData data, StyleCache styleCache) {
-        if (data.fee() != null) {
-            writeLongCell(row, COL_FEE, data.fee(), styleCache);
-        }
-    }
-
-    private void writeLongCell(Row row, int columnIndex, Long value, StyleCache styleCache) {
-        Cell cell = getOrCreateCell(row, columnIndex);
-        if (value == null) {
+            Cell cell = getOrCreateCell(row, columnIndex);
             cell.setBlank();
-        } else {
-            cell.setCellValue(value.doubleValue());
+            applyHighlight(cell, styleCache);
+            return true;
         }
+        Cell cell = getOrCreateCell(row, columnIndex);
+        cell.setCellValue(value.doubleValue());
         applyHighlight(cell, styleCache);
+        return true;
     }
 
-    private void writeDoubleCell(Row row, int columnIndex, Double value, StyleCache styleCache) {
-        Cell cell = getOrCreateCell(row, columnIndex);
+    private boolean writeDoubleCell(Row row, int columnIndex, Double value, StyleCache styleCache) {
         if (value == null) {
+            if (!options.emptyValueProcessing().clearsEmptyCells()) {
+                return false;
+            }
+            Cell cell = getOrCreateCell(row, columnIndex);
             cell.setBlank();
-        } else {
-            cell.setCellValue(value);
+            applyHighlight(cell, styleCache);
+            return true;
         }
+        Cell cell = getOrCreateCell(row, columnIndex);
+        cell.setCellValue(value);
         applyHighlight(cell, styleCache);
+        return true;
     }
 
     private Cell getOrCreateCell(Row row, int columnIndex) {

@@ -21,7 +21,6 @@ import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -35,7 +34,7 @@ import java.util.List;
 public class OrgNrGui extends JFrame {
 
     private static final Dimension ACTION_BUTTON_SIZE = new Dimension(220, 32);
-    private static final int HELP_TEXT_WIDTH_PX = 860;
+    private static final int WIDE_DIALOG_WIDTH_PX = 520;
     private static final int LOG_AREA_MIN_HEIGHT_PX = 240;
 
     private static final String[] HIGHLIGHT_COLORS = {
@@ -149,6 +148,7 @@ public class OrgNrGui extends JFrame {
         rowGbc.insets = new Insets(2, 0, 2, 0);
 
         actions.add(buildActionRow(
+                1,
                 actionButton("Rediger OrgNrs.txt", () ->
                         editInputFile(Path.of(Configuration.load().getProffAquaInputFile()))),
                 "Kopier organisasjonsnummer i filen. Tomme linjer er ufarlige, "
@@ -157,15 +157,15 @@ public class OrgNrGui extends JFrame {
         addRowSeparator(actions, rowGbc);
 
         actions.add(buildActionRow(
-                actionButton("Hent data", () ->
-                        runTask("Data-henting", () ->
-                                ApplicationTasks.fetchAll(Configuration.load(), selectedMode()))),
+                2,
+                actionButton("Hent data", this::confirmAndFetchData),
                 "Henter data fra Proff.no og (hvis «Proff og MTB» er valgt) også fra "
                         + "Fiskeridirektoratet (aqua) og MTB-gebyrer. Resultatet lagres i CSV-filen."
         ), rowGbc);
         addRowSeparator(actions, rowGbc);
 
         actions.add(buildActionRow(
+                3,
                 actionButton("Vis resultat-CSV", () ->
                         viewResultFile(Path.of(Configuration.load().getOutputFile()))),
                 "Viser CSV-filen med hentede data. Sjekk at alt ser riktig ut før du "
@@ -173,7 +173,14 @@ public class OrgNrGui extends JFrame {
         ), rowGbc);
         addRowSeparator(actions, rowGbc);
 
-        actions.add(buildMergeRow(excelFile), rowGbc);
+        actions.add(buildActionRow(
+                4,
+                actionButton("Sett markeringsfarge", this::showHighlightColorDialog),
+                "Setter markeringsfarge som skal brukes i neste steg."
+        ), rowGbc);
+        addRowSeparator(actions, rowGbc);
+
+        actions.add(buildMergeRow(5, excelFile), rowGbc);
         addRowSeparator(actions, rowGbc);
 
         section.add(actions, BorderLayout.CENTER);
@@ -189,46 +196,99 @@ public class OrgNrGui extends JFrame {
         gbc.insets = new Insets(2, 0, 2, 0);
     }
 
-    private JPanel buildActionRow(JButton button, String helpText) {
-        JPanel row = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = westGbc();
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        row.add(wrapHelpLabel(helpText), gbc);
+    private JPanel buildActionRow(int step, JButton button, String helpText) {
+        return buildButtonWithDescription(step, button, helpText);
+    }
 
-        gbc = westGbc();
-        gbc.gridy = 1;
-        gbc.insets = new Insets(6, 0, 0, 0);
-        row.add(button, gbc);
+    private JPanel buildMergeRow(int step, String excelFile) {
+        JButton mergeButton = actionButton("Slå sammen til Excel", this::confirmAndMergeToExcel);
+        return buildButtonWithDescription(
+                step,
+                mergeButton,
+                "Kopierer data fra CSV til Excel-filen (kolonner E, G, I ved «Bare Proff», "
+                        + "eller E, G, I, K, M ved «Proff og MTB»). Lukk Excel-filen først.\n"
+                        + "Excel-filen som oppdateres er: " + excelFile
+        );
+    }
+
+    private JPanel buildButtonWithDescription(int step, JButton button, String helpText) {
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+
+        JPanel left = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = westGbc();
+        gbc.anchor = GridBagConstraints.CENTER;
+        left.add(createStepLabel(step), gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 8, 0, 0);
+        left.add(button, gbc);
+
+        row.add(left, BorderLayout.WEST);
+
+        JPanel helpPanel = new JPanel(new BorderLayout());
+        helpPanel.setOpaque(false);
+        helpPanel.add(createHelpText(helpText), BorderLayout.NORTH);
+        row.add(helpPanel, BorderLayout.CENTER);
         return row;
     }
 
-    private JPanel buildMergeRow(String excelFile) {
-        JPanel row = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = westGbc();
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        row.add(wrapHelpLabel(
-                "Kopierer data fra CSV til Excel-filen (kolonner E, G, I ved «Bare Proff», "
-                        + "eller E, G, I, K, M ved «Proff og MTB»). Lukk Excel-filen først.<br>"
-                        + "Excel-filen som oppdateres er: " + excelFile
-        ), gbc);
+    private JLabel createStepLabel(int step) {
+        return new JLabel("Steg " + step + ":");
+    }
 
-        JButton mergeButton = actionButton("Slå sammen til Excel", () ->
-                runMergeTask("Excel-sammenslåing", mergeColorSelector));
+    private JTextArea createHelpText(String text) {
+        JTextArea area = new JTextArea(text.replace("<br>", "\n"));
+        area.setEditable(false);
+        area.setFocusable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setOpaque(false);
+        area.setBorder(BorderFactory.createEmptyBorder());
+        area.setFont(UIManager.getFont("Label.font"));
+        area.setForeground(UIManager.getColor("Label.foreground"));
+        return area;
+    }
 
-        gbc = westGbc();
-        gbc.gridy = 1;
-        gbc.insets = new Insets(6, 0, 0, 0);
-        row.add(mergeButton, gbc);
+    private void confirmAndFetchData() {
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                """
+                        Har du fullført steg 1 og lagt til nye organisasjonsnummer?
 
-        gbc.gridx = 1;
-        gbc.insets = new Insets(6, 8, 0, 0);
-        row.add(new JLabel("Markeringsfarge:"), gbc);
+                        Fortsette med data-henting?""",
+                "Hent data",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+        if (confirm != JOptionPane.OK_OPTION) {
+            return;
+        }
+        runTask("Data-henting", () ->
+                ApplicationTasks.fetchAll(Configuration.load(), selectedMode()));
+    }
 
-        gbc.gridx = 2;
-        row.add(mergeColorSelector, gbc);
-        return row;
+    private void showHighlightColorDialog() {
+        JComboBox<String> colorPicker = new JComboBox<>(HIGHLIGHT_COLORS);
+        colorPicker.setSelectedItem(mergeColorSelector.getSelectedItem());
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                colorPicker,
+                "Sett markeringsfarge",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String selectedColor = (String) colorPicker.getSelectedItem();
+        mergeColorSelector.setSelectedItem(selectedColor);
+        appendLog("Markeringsfarge satt til: " + selectedColor);
+    }
+
+    private void confirmAndMergeToExcel() {
+        runMergeTask("Excel-sammenslåing", mergeColorSelector);
     }
 
     private GridBagConstraints westGbc() {
@@ -237,16 +297,6 @@ public class OrgNrGui extends JFrame {
         gbc.gridy = 0;
         gbc.anchor = GridBagConstraints.WEST;
         return gbc;
-    }
-
-    private JLabel wrapHelpLabel(String text) {
-        JLabel label = new JLabel(
-                "<html><body style='width:" + HELP_TEXT_WIDTH_PX + "px;text-align:left'>"
-                        + text
-                        + "</body></html>"
-        );
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return label;
     }
 
     private ReportRunMode selectedMode() {
@@ -276,20 +326,42 @@ public class OrgNrGui extends JFrame {
     }
 
     private void runMergeTask(String taskName, JComboBox<String> colorSelector) {
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Lukk Excel-filen før sammenslåing.\nFortsette?",
+        String excelFile = Configuration.load().getExcelFile();
+        String selectedColor = String.valueOf(colorSelector.getSelectedItem());
+        int confirm = showWideConfirmDialog(
                 "Slå sammen til Excel",
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.INFORMATION_MESSAGE
+                """
+                        Sjekk følgende før sammenslåing:
+
+                        • Har du satt riktig farge? (Valgt farge: %s)
+                        • Har du sjekket at filen som oppdateres er riktig? (<nobr>%s</nobr>)
+                        • Har du lukket filen?
+
+                        Fortsette?""".formatted(selectedColor, excelFile),
+                JOptionPane.QUESTION_MESSAGE
         );
         if (confirm != JOptionPane.OK_OPTION) {
             return;
         }
 
         ReportRunMode mode = selectedMode();
-        String color = (String) colorSelector.getSelectedItem();
-        runBackground(taskName, () -> ApplicationTasks.mergeToExcel(Configuration.load(), mode, color));
+        runBackground(taskName, () -> ApplicationTasks.mergeToExcel(Configuration.load(), mode, selectedColor));
+    }
+
+    private int showWideConfirmDialog(String title, String message, int messageType) {
+        return JOptionPane.showConfirmDialog(
+                this,
+                wrapDialogMessage(message),
+                title,
+                JOptionPane.OK_CANCEL_OPTION,
+                messageType
+        );
+    }
+
+    private String wrapDialogMessage(String message) {
+        return "<html><body style='width:" + WIDE_DIALOG_WIDTH_PX + "px'>"
+                + message.replace("\n", "<br>")
+                + "</body></html>";
     }
 
     private void runBackground(String taskName, java.util.function.Supplier<String> task) {
@@ -395,6 +467,7 @@ public class OrgNrGui extends JFrame {
             } catch (Exception ignored) {
             }
             GuiDisplayConfig.applyUiFonts();
+            GuiDisplayConfig.applyUiLabels();
 
             OrgNrGui gui = new OrgNrGui();
             gui.setVisible(true);

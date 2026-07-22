@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class OrgNrReportCsvReaderTest {
 
@@ -33,5 +34,22 @@ class OrgNrReportCsvReaderTest {
         assertEquals(73830L, row.fee());
         assertEquals(248204000L, row.toCompanyData().revenue());
         assertEquals(4250.0, row.toAquacultureData().totalCapacity());
+    }
+
+    @Test
+    void readsEmptyCsvValuesAsNull() throws Exception {
+        Path csv = tempDir.resolve("OrgNrReport.csv");
+        Files.writeString(csv, """
+                OrgNr,OrgName,AccountingYear,Revenue,SalaryCost,EBIT,ProffStatus,TotalCapacity,Unit,EntryCount,AquaStatus,Fee
+                994613405,Test AS,,,,,ERROR,,,0,, 
+                """);
+
+        OrgNrReportData row = new OrgNrReportCsvReader(csv).readByOrgNumber().get("994613405");
+
+        assertNull(row.revenue());
+        assertNull(row.salaryCost());
+        assertNull(row.ebit());
+        assertNull(row.totalCapacity());
+        assertNull(row.fee());
     }
 }

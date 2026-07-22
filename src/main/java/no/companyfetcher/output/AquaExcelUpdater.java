@@ -69,10 +69,10 @@ public class AquaExcelUpdater {
                     continue;
                 }
 
-                writeNumericCell(row, COL_TOTAL_CAPACITY, rowData.totalCapacity(), styleCache);
-                updatedRows++;
-
-                log.info("Updated row {} ({}) with aquaculture capacity", row.getRowNum() + 1, orgNumber);
+                if (writeNumericCell(row, COL_TOTAL_CAPACITY, rowData.totalCapacity(), styleCache)) {
+                    updatedRows++;
+                    log.info("Updated row {} ({}) with aquaculture capacity", row.getRowNum() + 1, orgNumber);
+                }
             }
 
             try (OutputStream output = Files.newOutputStream(excelFile)) {
@@ -86,26 +86,38 @@ public class AquaExcelUpdater {
         }
     }
 
-    private void writeNumericCell(
+    private boolean writeNumericCell(
             Row row,
             int columnIndex,
             Double value,
             StyleCache styleCache
     ) {
+        if (value == null) {
+            if (!options.emptyValueProcessing().clearsEmptyCells()) {
+                return false;
+            }
+            Cell cell = row.getCell(columnIndex);
+            if (cell == null) {
+                cell = row.createCell(columnIndex);
+            }
+            cell.setBlank();
+            if (options.highlightUpdatedCells()) {
+                cell.setCellStyle(styleCache.withHighlight(cell.getCellStyle()));
+            }
+            return true;
+        }
+
         Cell cell = row.getCell(columnIndex);
         if (cell == null) {
             cell = row.createCell(columnIndex);
         }
 
-        if (value == null) {
-            cell.setBlank();
-        } else {
-            cell.setCellValue(value);
-        }
+        cell.setCellValue(value);
 
         if (options.highlightUpdatedCells()) {
             cell.setCellStyle(styleCache.withHighlight(cell.getCellStyle()));
         }
+        return true;
     }
 
     private String readOrgNumber(Cell cell) {

@@ -1,7 +1,6 @@
 package no.companyfetcher.output;
 
 import no.companyfetcher.model.AquacultureCapacityData;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -46,7 +45,42 @@ class AquaExcelUpdaterTest {
     }
 
     @Test
-    void clearsCellAndHighlightsWhenCapacityIsEmpty() throws Exception {
+    void leavesCellUntouchedWhenCapacityIsEmpty() throws Exception {
+        Path workbookPath = tempDir.resolve("companies.xlsx");
+        short originalStyleIndex;
+        try (var workbook = new XSSFWorkbook()) {
+            var sheet = workbook.createSheet("Sheet1");
+            var row = sheet.createRow(5);
+            row.createCell(1).setCellValue("994613405");
+            var cell = row.createCell(10);
+            cell.setCellValue(999);
+            var style = workbook.createCellStyle();
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            cell.setCellStyle(style);
+            originalStyleIndex = style.getIndex();
+            try (var out = Files.newOutputStream(workbookPath)) {
+                workbook.write(out);
+            }
+        }
+
+        Map<String, AquacultureCapacityData> rows = Map.of(
+                "994613405", new AquacultureCapacityData("994613405", "ELVEVOLL SETTEFISK AS", null, null, 0, "OK: NO_MATCHING_MTB")
+        );
+
+        AquaExcelUpdater.MergeResult result = new AquaExcelUpdater(workbookPath, ExcelMergeOptions.withDefaultHighlight())
+                .update(rows);
+
+        assertEquals(0, result.updatedRows());
+
+        try (var workbook = new XSSFWorkbook(workbookPath.toFile())) {
+            var cell = workbook.getSheetAt(0).getRow(5).getCell(10);
+            assertEquals(999.0, cell.getNumericCellValue());
+            assertEquals(originalStyleIndex, cell.getCellStyle().getIndex());
+        }
+    }
+
+    @Test
+    void clearsCellAndHighlightsWhenCapacityIsEmptyAndConfiguredToClear() throws Exception {
         Path workbookPath = tempDir.resolve("companies.xlsx");
         try (var workbook = new XSSFWorkbook()) {
             var sheet = workbook.createSheet("Sheet1");
@@ -62,11 +96,16 @@ class AquaExcelUpdaterTest {
                 "994613405", new AquacultureCapacityData("994613405", "ELVEVOLL SETTEFISK AS", null, null, 0, "OK: NO_MATCHING_MTB")
         );
 
-        new AquaExcelUpdater(workbookPath, ExcelMergeOptions.withDefaultHighlight()).update(rows);
+        AquaExcelUpdater.MergeResult result = new AquaExcelUpdater(
+                workbookPath,
+                ExcelMergeOptions.withDefaultHighlight().withEmptyValueProcessing(EmptyValueProcessing.CLEAR)
+        ).update(rows);
+
+        assertEquals(1, result.updatedRows());
 
         try (var workbook = new XSSFWorkbook(workbookPath.toFile())) {
             var cell = workbook.getSheetAt(0).getRow(5).getCell(10);
-            assertEquals(CellType.BLANK, cell.getCellType());
+            assertEquals(org.apache.poi.ss.usermodel.CellType.BLANK, cell.getCellType());
             assertEquals(FillPatternType.SOLID_FOREGROUND, cell.getCellStyle().getFillPattern());
         }
     }

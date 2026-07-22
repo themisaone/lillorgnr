@@ -18,6 +18,7 @@ public class ReportExcelMergeService {
         Path excelFile = Path.of(configuration.getExcelFile());
 
         var rows = new OrgNrReportCsvReader(csvFile).readByOrgNumber();
-        return new ReportExcelUpdater(excelFile, options).update(rows, scope);
+        ExcelMergeOptions effectiveOptions = options.withEmptyValueProcessing(configuration.getEmptyValueProcessing());
+        return new ReportExcelUpdater(excelFile, effectiveOptions).update(rows, scope);
     }
 }

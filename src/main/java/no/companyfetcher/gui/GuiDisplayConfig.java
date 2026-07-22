@@ -17,6 +17,10 @@ final class GuiDisplayConfig {
         }
     }
 
+    static void applyUiLabels() {
+        UIManager.put("OptionPane.cancelButtonText", "Avbryt");
+    }
+
     static void applyUiFonts() {
         if (!isWindows()) {
             return;

@@ -71,12 +71,12 @@ public class ExcelUpdater {
                     continue;
                 }
 
-                writeNumericCell(row, COL_REVENUE, company.revenue(), styleCache, true);
-                writeNumericCell(row, COL_SALARY, company.salaryCost(), styleCache, true);
-                writeNumericCell(row, COL_EBIT, company.ebit(), styleCache, true);
-                updatedRows++;
-
-                log.info("Updated row {} ({}) with financial data", row.getRowNum() + 1, orgNumber);
+                if (writeNumericCell(row, COL_REVENUE, company.revenue(), styleCache, true)
+                        | writeNumericCell(row, COL_SALARY, company.salaryCost(), styleCache, true)
+                        | writeNumericCell(row, COL_EBIT, company.ebit(), styleCache, true)) {
+                    updatedRows++;
+                    log.info("Updated row {} ({}) with financial data", row.getRowNum() + 1, orgNumber);
+                }
             }
 
             try (OutputStream output = Files.newOutputStream(excelFile)) {
@@ -90,27 +90,39 @@ public class ExcelUpdater {
         }
     }
 
-    private void writeNumericCell(
+    private boolean writeNumericCell(
             Row row,
             int columnIndex,
             Long value,
             StyleCache styleCache,
             boolean highlight
     ) {
+        if (value == null) {
+            if (!options.emptyValueProcessing().clearsEmptyCells()) {
+                return false;
+            }
+            Cell cell = row.getCell(columnIndex);
+            if (cell == null) {
+                cell = row.createCell(columnIndex);
+            }
+            cell.setBlank();
+            if (highlight && options.highlightUpdatedCells()) {
+                cell.setCellStyle(styleCache.withHighlight(cell.getCellStyle()));
+            }
+            return true;
+        }
+
         Cell cell = row.getCell(columnIndex);
         if (cell == null) {
             cell = row.createCell(columnIndex);
         }
 
-        if (value == null) {
-            cell.setBlank();
-        } else {
-            cell.setCellValue(value.doubleValue());
-        }
+        cell.setCellValue(value.doubleValue());
 
         if (highlight && options.highlightUpdatedCells()) {
             cell.setCellStyle(styleCache.withHighlight(cell.getCellStyle()));
         }
+        return true;
     }
 
     private String readOrgNumber(Cell cell) {

@@ -1,6 +1,7 @@
 package no.companyfetcher.output;
 
 import no.companyfetcher.model.CompanyData;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -80,6 +81,106 @@ class ExcelUpdaterTest {
                     new byte[]{(byte) 221, (byte) 235, (byte) 247},
                     updatedStyle.getFillForegroundColorColor().getRGB()
             );
+        }
+    }
+
+    @Test
+    void leavesEmptyFieldsUntouchedByDefault() throws Exception {
+        Path workbookPath = tempDir.resolve("companies.xlsx");
+        short originalStyleIndex;
+        try (var workbook = new XSSFWorkbook()) {
+            var sheet = workbook.createSheet("Sheet1");
+            var row = sheet.createRow(5);
+            row.createCell(1).setCellValue("994613405");
+            var cell = row.createCell(4);
+            cell.setCellValue(123_456.0);
+            var style = workbook.createCellStyle();
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            cell.setCellStyle(style);
+            originalStyleIndex = style.getIndex();
+            try (var out = Files.newOutputStream(workbookPath)) {
+                workbook.write(out);
+            }
+        }
+
+        Map<String, CompanyData> companies = Map.of(
+                "994613405", new CompanyData("994613405", "Arnøy Laks AS", 2024, null, null, null, "ERROR")
+        );
+
+        ExcelUpdater.MergeResult result = new ExcelUpdater(workbookPath, ExcelMergeOptions.withDefaultHighlight())
+                .update(companies);
+
+        assertEquals(0, result.updatedRows());
+
+        try (var workbook = new XSSFWorkbook(workbookPath.toFile())) {
+            var cell = workbook.getSheetAt(0).getRow(5).getCell(4);
+            assertEquals(123_456.0, cell.getNumericCellValue());
+            assertEquals(originalStyleIndex, cell.getCellStyle().getIndex());
+        }
+    }
+
+    @Test
+    void clearsEmptyFieldsWhenConfiguredToClear() throws Exception {
+        Path workbookPath = tempDir.resolve("companies.xlsx");
+        try (var workbook = new XSSFWorkbook()) {
+            var sheet = workbook.createSheet("Sheet1");
+            var row = sheet.createRow(5);
+            row.createCell(1).setCellValue("994613405");
+            row.createCell(4).setCellValue(123_456.0);
+            row.createCell(6).setCellValue(222.0);
+            row.createCell(8).setCellValue(333.0);
+            try (var out = Files.newOutputStream(workbookPath)) {
+                workbook.write(out);
+            }
+        }
+
+        Map<String, CompanyData> companies = Map.of(
+                "994613405", new CompanyData("994613405", "Arnøy Laks AS", 2024, null, null, null, "ERROR")
+        );
+
+        ExcelUpdater.MergeResult result = new ExcelUpdater(
+                workbookPath,
+                ExcelMergeOptions.withDefaultHighlight().withEmptyValueProcessing(EmptyValueProcessing.CLEAR)
+        ).update(companies);
+
+        assertEquals(1, result.updatedRows());
+
+        try (var workbook = new XSSFWorkbook(workbookPath.toFile())) {
+            var row = workbook.getSheetAt(0).getRow(5);
+            assertEquals(CellType.BLANK, row.getCell(4).getCellType());
+            assertEquals(CellType.BLANK, row.getCell(6).getCellType());
+            assertEquals(CellType.BLANK, row.getCell(8).getCellType());
+            assertEquals(FillPatternType.SOLID_FOREGROUND, row.getCell(4).getCellStyle().getFillPattern());
+        }
+    }
+
+    @Test
+    void updatesOnlyPresentFieldsWhenUntouched() throws Exception {
+        Path workbookPath = tempDir.resolve("companies.xlsx");
+        try (var workbook = new XSSFWorkbook()) {
+            var sheet = workbook.createSheet("Sheet1");
+            var row = sheet.createRow(5);
+            row.createCell(1).setCellValue("994613405");
+            row.createCell(6).setCellValue(222.0);
+            try (var out = Files.newOutputStream(workbookPath)) {
+                workbook.write(out);
+            }
+        }
+
+        Map<String, CompanyData> companies = Map.of(
+                "994613405", new CompanyData("994613405", "Arnøy Laks AS", 2024, 100L, null, 300L, "OK")
+        );
+
+        ExcelUpdater.MergeResult result = new ExcelUpdater(workbookPath, ExcelMergeOptions.withDefaultHighlight())
+                .update(companies);
+
+        assertEquals(1, result.updatedRows());
+
+        try (var workbook = new XSSFWorkbook(workbookPath.toFile())) {
+            var row = workbook.getSheetAt(0).getRow(5);
+            assertEquals(100.0, row.getCell(4).getNumericCellValue());
+            assertEquals(222.0, row.getCell(6).getNumericCellValue());
+            assertEquals(300.0, row.getCell(8).getNumericCellValue());
         }
     }
 

@@ -1,6 +1,7 @@
 package no.companyfetcher.config;
 
 import no.companyfetcher.provider.ProviderType;
+import no.companyfetcher.output.EmptyValueProcessing;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -102,6 +103,10 @@ public class Configuration {
 
     public String getExcelFile() {
         return require("excel.file");
+    }
+
+    public EmptyValueProcessing getEmptyValueProcessing() {
+        return EmptyValueProcessing.parse(properties.getProperty("empty.value.processing"));
     }
 
     public String getFiskeridirApiBaseUrl() {
