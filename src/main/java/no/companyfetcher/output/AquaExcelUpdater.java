@@ -75,6 +75,8 @@ public class AquaExcelUpdater {
                 }
             }
 
+            ExcelWorkbookSupport.prepareForSave(workbook);
+
             try (OutputStream output = Files.newOutputStream(excelFile)) {
                 workbook.write(output);
             }

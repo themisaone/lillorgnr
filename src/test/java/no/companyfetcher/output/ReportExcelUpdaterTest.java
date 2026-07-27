@@ -305,6 +305,27 @@ class ReportExcelUpdaterTest {
         }
     }
 
+    @Test
+    void marksWorkbookForFormulaRecalculationOnOpen() throws Exception {
+        Path workbookPath = tempDir.resolve("companies.xlsx");
+        createSampleWorkbook(workbookPath);
+
+        Map<String, OrgNrReportData> rows = Map.of(
+                "994613405", new OrgNrReportData(
+                        "994613405", "Arnøy Laks AS", 2024,
+                        248_204_000L, 25_194_000L, 15_303_000L, "OK",
+                        4250.0, "MTB", 4, "OK", 73_830L
+                )
+        );
+
+        new ReportExcelUpdater(workbookPath, ExcelMergeOptions.withDefaultHighlight())
+                .update(rows, ReportExcelUpdater.Scope.PROF);
+
+        try (var workbook = new XSSFWorkbook(workbookPath.toFile())) {
+            assertEquals(true, workbook.getForceFormulaRecalculation());
+        }
+    }
+
     private void createSampleWorkbook(Path workbookPath) throws Exception {
         try (var workbook = new XSSFWorkbook()) {
             var sheet = workbook.createSheet("Sheet1");
